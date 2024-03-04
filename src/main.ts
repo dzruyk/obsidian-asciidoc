@@ -1,4 +1,58 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
+
+import asciidoctor from 'asciidoctor'
+
+export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
+
+export class AsciidocView extends ItemView {
+	private state: any;
+	private plugin: AsciidocEditorPlugin;
+
+
+  constructor(plugin: AsciidocEditorPlugin, leaf: WorkspaceLeaf) {
+	  super(leaf);
+	  this.plugin = plugin;
+	  this.adoc = asciidoctor();
+	  this.options = {
+		  standalone: false,
+		  safe: 'safe',
+		  attributes: { 'showtitle': true, 'icons': 'font' }
+	  }
+
+	  getViewType() {
+		  return ASCIIDOC_EDITOR_VIEW;
+	  }
+
+	  getDisplayText() {
+		  return "Asciidoc Editor";
+	  }
+
+	  async setState(state: any, result: ViewStateResult): Promise<void> {
+		  console.log("setState!!!")
+		  console.log(state)
+		  if ('data' in state) {
+			  this.state = state
+		  }
+	  }
+
+	  async getState() {
+		  return Promise.resolve(this.state);
+	  }
+
+	  async onOpen() {
+		  console.log("OPEN!")
+	  }
+
+	  async onClose() {
+		  console.log("CLOSE!")
+	  }
+
+	  registerDomEvent(el: any, type: FocusEvent, callback: any): void {
+		  console.log('focssed')
+	  }
+}
+
 
 // Remember to rename these classes and interfaces!
 
@@ -10,11 +64,17 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
+export default class AsciidocEditorPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+		this.registerExtensions(["adoc", "asciidoc"], ASCIIDOC_EDITOR_VIEW);
+		console.log(this)
+
+		this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf))
+
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
@@ -79,7 +139,9 @@ export default class MyPlugin extends Plugin {
 	}
 
 	onunload() {
-
+		this.app.viewRegistry.unregisterExtensions([".adoc", ".asciidoc"]);
+		//this.registerExtensions([".md"], 'markdown');
+		this.app.workspace.detachLeavesOfType(ASCIIDOC_EDITOR_VIEW);
 	}
 
 	async loadSettings() {
