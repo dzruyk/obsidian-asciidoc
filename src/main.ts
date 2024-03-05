@@ -18,39 +18,61 @@ export class AsciidocView extends ItemView {
 		  standalone: false,
 		  safe: 'safe',
 		  attributes: { 'showtitle': true, 'icons': 'font' }
-	  }
+	  };
+  }
 
-	  getViewType() {
-		  return ASCIIDOC_EDITOR_VIEW;
-	  }
+  getViewType() {
+	  return ASCIIDOC_EDITOR_VIEW;
+  }
 
-	  getDisplayText() {
-		  return "Asciidoc Editor";
-	  }
+  getDisplayText() {
+	  return "Asciidoc Editor";
+  }
 
-	  async setState(state: any, result: ViewStateResult): Promise<void> {
-		  console.log("setState!!!")
-		  console.log(state)
-		  if ('data' in state) {
-			  this.state = state
-		  }
-	  }
+  async setState(state: any, result: ViewStateResult): Promise<void> {
+	console.log("setState!!!")
+	console.log(state)
+	let htmlStr = this.adoc.convert('**EMPTY**', this.options)
 
-	  async getState() {
-		  return Promise.resolve(this.state);
-	  }
+	/*
+	this.containerEl.children[1]
 
-	  async onOpen() {
-		  console.log("OPEN!")
-	  }
+	let dom = (new window.DOMParser()).parseFromString( htmlStr, 'text/html' );
+	//div.innerHTML = dom.documentElement.outerHTML;
+	*/
 
-	  async onClose() {
-		  console.log("CLOSE!")
-	  }
+   let div = this.contentEl.createDiv();
+	if ('data' in state) {
+	  this.state = state
+	  //TODO
+	}
 
-	  registerDomEvent(el: any, type: FocusEvent, callback: any): void {
-		  console.log('focssed')
-	  }
+	if ('file' in state) {
+		let tfile = this.app.vault.getFileByPath(state.file)
+		const contents = await this.app.vault.read(tfile);
+		htmlStr = this.adoc.convert(contents, this.options)
+	}
+   div.innerHTML = htmlStr;
+
+  }
+
+  async getState() {
+	  return Promise.resolve(this.state);
+  }
+
+  async onOpen() {
+	  console.log("OPEN!")
+	  const container = this.containerEl.children[1];
+	  console.log(container)
+  }
+
+  async onClose() {
+	  console.log("CLOSE!")
+  }
+
+  registerDomEvent(el: any, type: FocusEvent, callback: any): void {
+	  console.log('focssed')
+  }
 }
 
 
