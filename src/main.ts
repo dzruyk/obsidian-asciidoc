@@ -1,219 +1,299 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TextFileView, TFile } from 'obsidian';
 import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
 import { Component, editorInfoField } from 'obsidian';
 
+import { AdocNewFileModal } from './adocNewFileModal';
 import asciidoctor from 'asciidoctor'
+
+import Mark from 'mark.js'
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
-///////
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
-import { EditorSelection, EditorState, Range } from "@codemirror/state";
-import {syntaxHighlighting, defaultHighlightStyle} from "@codemirror/language"
+import "codemirror-asciidoc"
+import CodeMirror from 'codemirror'
 
-import { StreamLanguage } from "@codemirror/language"
-import { asciidoc as cmAdoc } from "codemirror-asciidoc"
-import { basicSetup } from "codemirror"
+import 'codemirror/addon/selection/active-line.js'
+import 'codemirror/addon/display/fullscreen.js'
+import 'codemirror/addon/display/fullscreen.css'
+import 'codemirror/addon/selection/mark-selection.js'
+import 'codemirror/addon/search/searchcursor.js'
+import 'codemirror/addon/search/search.js'
+import 'codemirror/addon/scroll/annotatescrollbar.js'
+import 'codemirror/addon/search/matchesonscrollbar.js'
+import 'codemirror/addon/dialog/dialog.js'
+import 'codemirror/addon/hint/show-hint.js'
+import 'codemirror/addon/fold/foldcode.js'
+import 'codemirror/addon/fold/foldgutter.js'
+import 'codemirror/addon/fold/foldgutter.css'
 
-class MyExamplePlugin implements PluginValue {
-  constructor(view: EditorView) {
-    // ...
+//import 'codemirror/lib/codemirror.css'
+
+function isValidUrl(str: string): boolean {
+  let url;
+  try {
+    url = new URL(str);
+  } catch (_) {
+    return false;
   }
-
-  update(update: ViewUpdate) {
-    console.log("update")
-    console.log(update)
-    // ...
-  }
-
-  destroy() {
-    // ...
-  }
+  return true
 }
 
-const ExamplePlugin = ViewPlugin.fromClass(MyExamplePlugin);
+function deleteChildNodes(el: any) {
+    while (el.hasChildNodes())
+      el.removeChild(el.children[0]);
+  }
 
+let isEditMode = true;
 
-function asciidocEditorPlugin(/*app: App, index: FullIndex, settings: DataviewSettings, api: DataviewApi*/) {
-  return ViewPlugin.fromClass(
-    class {
-      decorations: DecorationSet;
-      component: Component;
-
-      constructor(view: EditorView) {
-        this.component = new Component();
-        this.component.load();
-        this.decorations = this.inlineRender(view) ?? Decoration.none;
-      }
-      update(update: ViewUpdate) {
-        console.log("update")
-        if (!update.state.field(editorLivePreviewField)) {
-          this.decorations = Decoration.none;
-          return;
-        }
-        if (update.docChanged) {
-          this.decorations = this.decorations.map(update.changes);
-          this.updateTree(update.view);
-        } else if (update.selectionSet) {
-          this.updateTree(update.view);
-        } else if (update.viewportChanged /*|| update.selectionSet*/) {
-          this.decorations = this.inlineRender(update.view) ?? Decoration.none;
-        }
-      }
-      updateTree(view: EditorView) {
-        console.log("updateTree")
-      }
-      inlineRender(view: EditorView) {
-        const currentFile = view.state.field(editorInfoField).file;
-        console.log("inlineRender " + currentFile)
-        if (!currentFile) return;
-
-      }
-      /*
-      removeDeco(node: SyntaxNode) {
-        console.log("removeDeco")
-      }
-      addDeco(node: SyntaxNode, view: EditorView) {
-        console.log("addDeco")
-      }
-      renderNode(view: EditorView, node: SyntaxNode) {
-      }
-      */
-     destroy() {
-       this.component.unload();
-     }
-    },
-    { decorations: v => v.decorations }
-  )
-
-      /*
-
-  let view = new EditorView({
-    state: EditorState.create({
-      extensions: [basicSetup, StreamLanguage.define(cmAdoc)]
-    })
-  })
-  return view;
-  */
-
-}
-
-export class AsciidocView extends ItemView {
-  private state: any;
+export class AsciidocView extends TextFileView {
+  private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
+  private div: any;
+  private options: any;
+  private adoc: any;
+  private cm: any;
+  private mark: any;
+  private isSearchActive: boolean;
+  private leaf: WorkspaceLeaf;
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
+    this.leaf = leaf;
     this.plugin = plugin;
+    this.div = null;
+    this.isSearchActive = false;
+    console.log("CONSTRUCTOR")
+
+    // For viewer mode
     this.adoc = asciidoctor();
-    this.path = '';
     this.options = {
       standalone: false,
       safe: 'safe',
       attributes: { 'showtitle': true, 'icons': 'font' }
     };
-	console.log(cmAdoc)
-	this.cm = new EditorView({
-		doc: "helloworld",
-		mode: "asciidoc",
-		state: EditorState.create({
-			extensions: [basicSetup, StreamLanguage.define(cmAdoc)],
-		}),
-		extensions: [cmAdoc],
-		parent: this.contentEl,
-		lineNumbers: true,
-		lineWrapping: true,
-		line: true,
-		styleActiveLine: true,
+    this.mark = null;
 
-		highlightSelectionMatches: {
-			annotateScrollbar: true
-		},
-		viewportMargin: 50,
-		inputStyle: 'contenteditable',
-		allowDropFileTypes: ['image/jpg', 'image/png', 'image/svg', 'image/jpeg', 'image/gif'],
-	})
+    let tmp = document.createElement("div");
+    // @ts-ignore
+    this.cm = CodeMirror(tmp,
+    {
+      tabSize: 2,
+      mode: "asciidoc",
+      lineNumbers: true,
+      lineWrapping: true,
+      // @ts-ignore
+      line: true,
+      styleActiveLine: true,
+      highlightSelectionMatches: {
+        annotateScrollbar: true
+      },
+      viewportMargin: 2,
+      inputStyle: 'contenteditable',
+      allowDropFileTypes: ['image/jpg', 'image/png', 'image/svg', 'image/jpeg', 'image/gif'],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+    })
 
-	/*
-	this.cm.on('change', c => {
-		console.log("CM change")
-	})
-	*/
-
+    this.addAction("book-open", "preview/editor mode", (evt :MouseEvent ) => { this.changeViewMode() });
   }
 
-  getViewType() {
-	  return ASCIIDOC_EDITOR_VIEW;
+  changeViewMode() {
+    isEditMode = !isEditMode;
+    console.log("change edit mode ", isEditMode);
+    deleteChildNodes(this.div);
+    this.isSearchActive = false;
+    this.renderCurrentMode();
   }
 
-  getDisplayText() {
-	  if (!this.path) {
-		  return "Asciidoc Editor";
-	  } else {
-		  return this.path;
-	  }
+  renderCurrentMode() {
+    if (!this.div) {
+      console.log("SHOULD NOT REACH");
+    }
+
+    if (isEditMode) {
+      console.log("render editor");
+      this.div.appendChild(this.cm.getWrapperElement());
+      this.cm.refresh();
+    } else {
+      console.log("render viewer");
+      this.div.appendChild(this.renderViewerMode());
+    }
   }
 
-  async setState(state: any, result: ViewStateResult): Promise<void> {
-	console.log("setState!!!")
-	console.log(state)
+  renderViewerMode() {
+    let contents = this.cm.getValue();
+    let htmlStr = this.adoc.convert(contents, this.options);
 
-	let txt = "";
-	if ('data' in state) {
-		this.state = state
-		txt = "**TODO!**"
-		console.log("TODO!!!")
-	}
-	if ('file' in state) {
-		this.path = state.file;
-		let tfile = this.app.vault.getFileByPath(this.path);
-		txt = await this.app.vault.read(tfile);
-		console.log("set contents")
-		//this.cm.doc = contents;
-		//htmlStr = this.adoc.convert(contents, this.options);
-	}
+    let parser = new window.DOMParser();
+    let dom = document.createElement("div");
 
-	this.cm.dispatch({
-		changes: {from: 0, to: this.cm.state.doc.length, insert: txt }
-	})
+    dom.innerHTML = htmlStr;
+    let collection = dom.getElementsByTagName("a");
 
-	  /*
-		 this.containerEl.children[1]
+    while (collection.length > 0) {
+      let item = collection[0];
 
-		 let dom = (new window.DOMParser()).parseFromString( htmlStr, 'text/html' );
-	  //div.innerHTML = dom.documentElement.outerHTML;
-	  */
-	  /*
-		 if ('file' in state) {
-		 this.path = state.file;
-		 let tfile = this.app.vault.getFileByPath(state.file);
-		 const contents = await this.app.vault.read(tfile);
-		 htmlStr = this.adoc.convert(contents, this.options);
-		 }
-		 div.innerHTML = htmlStr;
-		 */
+      let txt = item.getText().trim();
+      let cls = "cm-hmd-internal-link";
+      if (isValidUrl(txt)) {
+        cls = "cm-url";
+      }
+      let s = `<span class="${cls}" spellcheck="false"><span class="cm-underline" draggable="true"> ${txt} </span></span>`;
+      let div = document.createElement('div');
+      div.innerHTML = s;
+      if (item.parentNode) {
+        item.parentNode.replaceChild(div, item);
+      }
 
+      div.onclick = () => {
+        console.log(`CLICK ${txt}`);
+        this.app.workspace.openLinkText(txt, '', false);
+      }
+    }
+    this.mark = new Mark(dom);
+    return dom;
   }
 
-  async getState() {
-	  return Promise.resolve(this.state);
+  renderSearchDialog() {
+    let cm = this.cm;
+
+    let searchDialog = '<span class="CodeMirror-search-label">' + cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
+
+    let item = document.createElement("div");
+    item.className = "CodeMirror-dialog-top";
+    item.innerHTML = searchDialog;
+
+    let root = document.createElement("div");
+    root.className = "CodeMirror-dialog";
+    root.innerHTML = item.outerHTML;
+    this.div.insertBefore(root, this.div.children[0])
+
+    let collection = root.getElementsByTagName("input");
+    collection[0].focus();
+
+    collection[0].addEventListener("keyup", (e: KeyboardEvent) => {
+      if (e.keyCode == 13)
+        this.doSearch(collection[0].value);
+    }, true)
+
+    this.isSearchActive = true;
+  }
+
+  doSearch(val: string) {
+    this.mark.unmark();
+    this.mark.mark(val, { separateWordSearch: false } );
+    let elements = this.div.getElementsByTagName("mark");
+    if (elements.length)
+      elements[0].scrollIntoView();
   }
 
   async onOpen() {
-	  console.log("OPEN!")
-	  const container = this.containerEl.children[1];
-	  console.log(container)
+    await super.onOpen();
+  }
+
+  async onLoadFile(file: TFile) {
+    console.log("onLoadFile", isEditMode);
+
+    if (this.div == null)
+      this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
+
+    this.renderCurrentMode()
+    this.addKeyEvents();
+    await super.onLoadFile(file);
+  }
+
+  async onUnloadFile(file: TFile) {
+    console.log("onUnloadFile ", isEditMode)
+    window.removeEventListener('keydown', this.keyHandle, true);
+    await super.onUnloadFile(file);
+    deleteChildNodes(this.div);
   }
 
   async onClose() {
-	  console.log("CLOSE!")
+    await super.onClose();
+    console.log("onClose")
   }
 
-  registerDomEvent(el: any, type: FocusEvent, callback: any): void {
-	  console.log('focssed')
+  onResize() {
+  }
+
+  getContext(file?: TFile) {
+    return file?.path ?? this.file?.path;
+  }
+
+  getViewType() {
+    return ASCIIDOC_EDITOR_VIEW;
+  }
+
+  getViewData = () => {
+    return this.cm.getValue();
+  }
+
+  setViewData = (data: string, clear: boolean) => {
+    console.log(`setViewData ${clear} buf = ${data.substr(0, 10)}`)
+    this.pageData = data;
+    this.cm.setValue(data)
+    if (isEditMode)
+      this.cm.refresh();
+    if (clear) {
+      if (!isEditMode) {
+        deleteChildNodes(this.div);
+        this.div.appendChild(this.renderViewerMode());
+      }
+    }
+  }
+
+  clear = () => {
+    this.cm.setValue("")
+  }
+
+  addKeyEvents() {
+    window.addEventListener('keydown', this.keyHandle, true);
+  }
+
+  private keyHandle = (event: KeyboardEvent) => {
+    if (app.workspace.activeLeaf != this.leaf)
+      return;
+
+    type myCallback = () => void;
+    const ctrlMap = new Map<number, myCallback >([
+      /* "f" */ [70, () => { this.commandFind() } ],
+      /* "e" */ [69, () => { this.changeViewMode() } ],
+
+    ]);
+    if (event.ctrlKey) {
+      const cb = ctrlMap.get(event.keyCode);
+      if (cb)
+        cb()
+    } else if (event.key == 'Escape') {
+      this.commandEsc()
+    }
+  }
+
+  commandFind() {
+    if (isEditMode) {
+      CodeMirror.commands.find(this.cm);
+    } else {
+      if (this.isSearchActive) {
+        let collection = this.div.getElementsByTagName("input");
+        if (collection.length)
+          collection[0].focus();
+        return;
+      }
+      this.renderSearchDialog();
+    }
+  }
+
+  commandEsc() {
+    console.log('esc')
+    if (isEditMode)
+      return;
+    if (!this.isSearchActive)
+      return;
+
+    this.div.removeChild(this.div.children[0]);
+    this.isSearchActive = false;
   }
 }
-
 
 // Remember to rename these classes and interfaces!
 
@@ -227,89 +307,70 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 
 export default class AsciidocPlugin extends Plugin {
   settings: MyPluginSettings;
+  app: any;
 
   async onload() {
     await this.loadSettings();
 
-    this.cmExtension = []
-    this.registerEditorExtension([this.cmExtension]);
-    this.updateEditorExtensions();
+    //this.cmExtension = []
+    //this.registerEditorExtension([this.cmExtension]);
+    //this.updateEditorExtensions();
 
     console.log("this.app.workspace")
     console.log(this.app.workspace)
     this.registerExtensions(["adoc", "asciidoc"], ASCIIDOC_EDITOR_VIEW);
     console.log(this)
 
-
     this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf))
-
-
-    // This creates an icon in the left ribbon.
-    const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-      // Called when the user clicks the icon.
-      new Notice('This is a notice!');
-    });
-
-    // Perform additional things with the ribbon
-    ribbonIconEl.addClass('my-plugin-ribbon-class');
 
     // This adds a status bar item to the bottom of the app. Does not work on mobile apps.
     const statusBarItemEl = this.addStatusBarItem();
     statusBarItemEl.setText('Status Bar Text');
 
-    // This adds a simple command that can be triggered anywhere
-    this.addCommand({
-      id: 'open-sample-modal-simple',
-      name: 'Open sample modal (simple)',
-      callback: () => {
-        new SampleModal(this.app).open();
-      }
-    });
-    // This adds an editor command that can perform some operation on the current editor instance
-    this.addCommand({
-      id: 'sample-editor-command',
-      name: 'Sample editor command',
-      editorCallback: (editor: Editor, view: MarkdownView) => {
-        console.log(editor.getSelection());
-        editor.replaceSelection('Sample Editor Command');
-      }
+  this.registerEvent(
+    this.app.workspace.on("file-menu", (menu, file) => {
+      menu.addItem((item) => {
+        item
+        .setTitle("New asciidoc file")
+        .setIcon("scroll-text")
+        .onClick(async () => {
+          new AdocNewFileModal(this, file).open();
+        });
+      });
+    })
+  );
+
+  this.addRibbonIcon('scroll-text', "New asciidoc file", () => {
+      new AdocNewFileModal(this).open();
     });
     // This adds a complex command that can check whether the current state of the app allows execution of the command
     this.addCommand({
-      id: 'open-sample-modal-complex',
-      name: 'Open sample modal (complex)',
-      checkCallback: (checking: boolean) => {
-        // Conditions to check
-        const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (markdownView) {
-          // If checking is true, we're simply "checking" if the command can be run.
-          // If checking is false, then we want to actually perform the operation.
-          if (!checking) {
-            new SampleModal(this.app).open();
-          }
-
-          // This command will only show up in Command Palette when the check function returns true
-          return true;
-        }
-      }
+      id: 'create-adoc',
+      name: 'create new Asciidoc file',
+    callback: () => {
+      new AdocNewFileModal(this).open();
+    }
+      
     });
 
     // This adds a settings tab so the user can configure various aspects of the plugin
-    this.addSettingTab(new SampleSettingTab(this.app, this));
+    //this.addSettingTab(new SampleSettingTab(this.app, this));
 
     // If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
     // Using this function will automatically remove the event listener when this plugin is disabled.
+  /*
     this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
       console.log('click', evt);
     });
+  */
 
     // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
     this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
   }
 
   public updateEditorExtensions() {
-    this.cmExtension.length = 0;
-    this.cmExtension.push(ExamplePlugin)
+    //this.cmExtension.length = 0;
+    //this.cmExtension.push(ExamplePlugin)
     //this.cmExtension.push(asciidocEditorPlugin(/*this.app, this.index, this.settings, this.api*/));
     this.app.workspace.updateOptions();
 
@@ -330,26 +391,10 @@ export default class AsciidocPlugin extends Plugin {
   }
 }
 
-class SampleModal extends Modal {
-  constructor(app: App) {
-    super(app);
-  }
-
-  onOpen() {
-    const {contentEl} = this;
-    contentEl.setText('Woah!');
-  }
-
-  onClose() {
-    const {contentEl} = this;
-    contentEl.empty();
-  }
-}
-
 class SampleSettingTab extends PluginSettingTab {
-  plugin: MyPlugin;
+  plugin: AsciidocPlugin;
 
-  constructor(app: App, plugin: MyPlugin) {
+  constructor(app: App, plugin: AsciidocPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -371,3 +416,4 @@ class SampleSettingTab extends PluginSettingTab {
         }));
   }
 }
+
