@@ -7,6 +7,9 @@ The plugin supports view and edit modes (switching the mode with `ctrl+e` hotkey
 Global search is not supported due to the limitations of the Obsidian API (however, you can use the omnisearch plugin https://github.com/scambier/obsidian-omnisearch)
 
 
+## preview
+
+![preview](./img/asciidoc.gif)
 
 ## How to use
 
