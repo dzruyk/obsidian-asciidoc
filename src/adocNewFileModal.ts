@@ -1,6 +1,5 @@
 import {
   ButtonComponent,
-  DropdownComponent,
   Modal,
   normalizePath,
   Notice,
@@ -10,12 +9,14 @@ import {
   TFolder
 } from "obsidian";
 
+import AsciidocPlugin from "./main"
+
 export class AdocNewFileModal extends Modal {
   fileName = "new_name";
   ext = "adoc";
   parent: TAbstractFile;
 
-  constructor(private plugin: CodeFilesPlugin, parent?: TAbstractFile) {
+  constructor(private plugin: AsciidocPlugin, parent?: TAbstractFile) {
     super(plugin.app);
     this.parent = parent ?? this.plugin.app.vault.getRoot();
   }
@@ -38,7 +39,7 @@ export class AdocNewFileModal extends Modal {
     submitButton.setButtonText("Create");
     submitButton.onClick(() => this.complete());
 
-    fileName.inputEl.focus();
+    pathInput.inputEl.focus();
   }
 
   async complete() {
