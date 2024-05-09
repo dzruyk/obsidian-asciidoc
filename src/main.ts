@@ -56,9 +56,8 @@ export default class AsciidocPlugin extends Plugin {
     callback: () => {
       new AdocNewFileModal(this).open();
     }
-      
-    });
 
+    });
 
     // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
     this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));

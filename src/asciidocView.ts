@@ -46,6 +46,85 @@ function deleteChildNodes(el: any) {
 
 let isEditMode = true;
 
+class SearchCtx {
+  private isSearchActive: boolean;
+  private cm: any;
+  private mark: any;
+  private root: HTMLElement;
+  private resultOffset: number;
+  private searchBox: HTMLElement;
+  private searchContainer: HTMLElement;
+
+  constructor(rootDiv: HTMLElement, searchContainer: HTMLElement, cm: any) {
+    this.root = rootDiv;
+    this.mark = new Mark(rootDiv);
+    this.isSearchActive = false;
+    this.resultOffset = 0;
+    this.cm = cm;
+    this.searchBox = null;
+    this.searchContainer = searchContainer;
+
+  }
+
+  render() {
+    this.isSearchActive = true;
+
+    let searchDialog = '<span class="CodeMirror-search-label">' + this.cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
+
+    let searchBox = document.createElement("div");
+    searchBox.className = "CodeMirror-dialog CodeMirror-dialog-top";
+    searchBox.innerHTML = searchDialog;
+    this.searchContainer.insertBefore(searchBox, this.searchContainer.children[0]);
+
+    let collection = searchBox.getElementsByTagName("input");
+    collection[0].addEventListener("keyup", (e: KeyboardEvent) => {
+      if (e.keyCode == 13) {
+        this.search(collection[0].value);
+      }
+    }, true)
+    collection[0].focus();
+
+    this.searchBox = searchBox;
+  }
+
+  search(s: string) {
+    if (!this.isSearchActive) {
+      this.resultOffset = 0;
+    }
+    this.isSearchActive = true;
+    console.log("nextsearch")
+    this.mark.unmark();
+    this.mark.mark(s, { separateWordSearch: false } );
+    let elements = this.root.getElementsByTagName("mark");
+    if (elements.length != 0) {
+      if (this.resultOffset >= elements.length)
+        this.resultOffset = 0;
+
+      elements[this.resultOffset].scrollIntoView();
+      this.resultOffset += 1;
+    }
+  }
+
+  focus() {
+    if (this.isSearchActive) {
+      let collection = this.searchBox.getElementsByTagName("input");
+      if (collection.length)
+        collection[0].focus();
+      return;
+    } else {
+      this.render();
+    }
+  }
+
+  resetSearch() {
+    if (this.isSearchActive) {
+      this.searchBox.remove();
+    }
+    this.isSearchActive = false;
+    //this.searchBox.hidden = true;
+  }
+}
+
 export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
@@ -53,14 +132,12 @@ export class AsciidocView extends TextFileView {
   private options: any;
   private adoc: any;
   private cm: any;
-  private mark: any;
-  private isSearchActive: boolean;
+  private sctx: SearchCtx;
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
     this.plugin = plugin;
     this.div = null;
-    this.isSearchActive = false;
     console.log("CONSTRUCTOR")
 
     // For viewer mode
@@ -70,7 +147,6 @@ export class AsciidocView extends TextFileView {
       safe: 'safe',
       attributes: { 'showtitle': true, 'icons': 'font' }
     };
-    this.mark = null;
 
     let tmp = document.createElement("div");
     // @ts-ignore
@@ -99,7 +175,6 @@ export class AsciidocView extends TextFileView {
     isEditMode = !isEditMode;
     console.log("change edit mode ", isEditMode);
     deleteChildNodes(this.div);
-    this.isSearchActive = false;
     this.renderCurrentMode();
   }
 
@@ -123,10 +198,11 @@ export class AsciidocView extends TextFileView {
     let htmlStr = this.adoc.convert(contents, this.options);
 
     let parser = new window.DOMParser();
-    let dom = document.createElement("div");
 
-    dom.innerHTML = htmlStr;
-    let collection = dom.getElementsByTagName("a");
+    let dataEl = document.createElement("div");
+
+    dataEl.innerHTML = htmlStr;
+    let collection = dataEl.getElementsByTagName("a");
 
     while (collection.length > 0) {
       let item = collection[0];
@@ -148,41 +224,11 @@ export class AsciidocView extends TextFileView {
         this.app.workspace.openLinkText(txt, '', false);
       }
     }
-    this.mark = new Mark(dom);
-    return dom;
-  }
-
-  renderSearchDialog() {
-    let cm = this.cm;
-
-    let searchDialog = '<span class="CodeMirror-search-label">' + cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
-
-    let item = document.createElement("div");
-    item.className = "CodeMirror-dialog-top";
-    item.innerHTML = searchDialog;
-
     let root = document.createElement("div");
-    root.className = "CodeMirror-dialog";
-    root.innerHTML = item.outerHTML;
-    this.div.insertBefore(root, this.div.children[0])
+    root.appendChild(dataEl)
 
-    let collection = root.getElementsByTagName("input");
-    collection[0].focus();
-
-    collection[0].addEventListener("keyup", (e: KeyboardEvent) => {
-      if (e.keyCode == 13)
-        this.doSearch(collection[0].value);
-    }, true)
-
-    this.isSearchActive = true;
-  }
-
-  doSearch(val: string) {
-    this.mark.unmark();
-    this.mark.mark(val, { separateWordSearch: false } );
-    let elements = this.div.getElementsByTagName("mark");
-    if (elements.length)
-      elements[0].scrollIntoView();
+    this.sctx = new SearchCtx(dataEl, root, this.cm);
+    return root;
   }
 
   async onOpen() {
@@ -269,16 +315,12 @@ export class AsciidocView extends TextFileView {
   }
 
   commandFind() {
+    console.log("command find!");
     if (isEditMode) {
       CodeMirror.commands.find(this.cm);
     } else {
-      if (this.isSearchActive) {
-        let collection = this.div.getElementsByTagName("input");
-        if (collection.length)
-          collection[0].focus();
-        return;
-      }
-      this.renderSearchDialog();
+      
+      this.sctx.focus();
     }
   }
 
@@ -286,11 +328,7 @@ export class AsciidocView extends TextFileView {
     console.log('esc')
     if (isEditMode)
       return;
-    if (!this.isSearchActive)
-      return;
-
-    this.div.removeChild(this.div.children[0]);
-    this.isSearchActive = false;
+    this.sctx.resetSearch();
   }
 }
 

@@ -382,8 +382,11 @@ span.CodeMirror-selectedtext { background: none; }
 }
 
 .adoc-view {
-	user-select: auto;
-	-webkit-user-select: text;
+  user-select: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  -webkit-user-select: text;
   /* Links */
   --link-color: var(--text-accent);
   --link-color-hover: var(--text-accent-hover);
@@ -414,7 +417,6 @@ span.CodeMirror-selectedtext { background: none; }
   word-break: break-word;
 }
 
-
 .markdown-source-view.mod-cm6 .is-unresolved .cm-underline {
   text-decoration-line: var(--link-decoration);
   text-decoration-style: var(--link-unresolved-decoration-style);
@@ -437,6 +439,7 @@ body.is-mobile .markdown-source-view.mod-cm6 .cm-underline {
 .CodeMirror-dialog {
   position: absolute;
   left: 0; right: 0;
+  width: 100%;
   background: inherit;
   z-index: 15;
   padding: .1em .8em;
