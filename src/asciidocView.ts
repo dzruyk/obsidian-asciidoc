@@ -8,24 +8,11 @@ import asciidoctor from 'asciidoctor'
 
 import Mark from 'mark.js'
 
+import {StreamLanguage} from "@codemirror/language";
+import {asciidoc} from "codemirror-asciidoc";
+import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup"
+
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
-
-import "codemirror-asciidoc"
-import CodeMirror from 'codemirror'
-
-import 'codemirror/addon/selection/active-line.js'
-import 'codemirror/addon/display/fullscreen.js'
-import 'codemirror/addon/display/fullscreen.css'
-import 'codemirror/addon/selection/mark-selection.js'
-import 'codemirror/addon/search/searchcursor.js'
-import 'codemirror/addon/search/search.js'
-import 'codemirror/addon/scroll/annotatescrollbar.js'
-import 'codemirror/addon/search/matchesonscrollbar.js'
-import 'codemirror/addon/dialog/dialog.js'
-import 'codemirror/addon/hint/show-hint.js'
-import 'codemirror/addon/fold/foldcode.js'
-import 'codemirror/addon/fold/foldgutter.js'
-import 'codemirror/addon/fold/foldgutter.css'
 
 //import 'codemirror/lib/codemirror.css'
 
@@ -138,7 +125,9 @@ export class AsciidocView extends TextFileView {
     super(leaf);
     this.plugin = plugin;
     this.div = null;
-    console.log("CONSTRUCTOR")
+    console.log("CONSTRUCTORR");
+    console.log(CodeMirror);
+    console.log(this.plugin);
 
     // For viewer mode
     this.adoc = asciidoctor();
@@ -149,7 +138,17 @@ export class AsciidocView extends TextFileView {
     };
 
     let tmp = document.createElement("div");
+
     // @ts-ignore
+    /*
+    let view = new EditorView({
+      state: EditorState.create({
+        extensions: [basicSetup, StreamLanguage.define(asciidoc)]
+      })
+    })
+    */
+   asciidoc;
+    //this.plugin.registerEditorExtension
     this.cm = CodeMirror(tmp,
     {
       tabSize: 2,
@@ -319,7 +318,6 @@ export class AsciidocView extends TextFileView {
     if (isEditMode) {
       CodeMirror.commands.find(this.cm);
     } else {
-      
       this.sctx.focus();
     }
   }

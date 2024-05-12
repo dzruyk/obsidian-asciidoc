@@ -20,7 +20,7 @@ export class AdocNewFileModal extends Modal {
     super(plugin.app);
     this.parent = parent ?? this.plugin.app.vault.getRoot();
   }
-  
+
   onOpen() {
     const {contentEl} = this;
     contentEl.addClass("new-adoc-modal");
