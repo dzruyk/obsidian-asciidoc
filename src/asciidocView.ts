@@ -8,9 +8,13 @@ import asciidoctor from 'asciidoctor'
 
 import Mark from 'mark.js'
 
-import {StreamLanguage} from "@codemirror/language";
-import {asciidoc} from "codemirror-asciidoc";
-import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup"
+import { StreamLanguage } from "@codemirror/language";
+import { EditorView } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+
+import { basicExtensions } from "./codemirror";
+
+import { asciidoc } from "codemirror-asciidoc";
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -35,19 +39,17 @@ let isEditMode = true;
 
 class SearchCtx {
   private isSearchActive: boolean;
-  private cm: any;
   private mark: any;
   private root: HTMLElement;
   private resultOffset: number;
   private searchBox: HTMLElement;
   private searchContainer: HTMLElement;
 
-  constructor(rootDiv: HTMLElement, searchContainer: HTMLElement, cm: any) {
+  constructor(rootDiv: HTMLElement, searchContainer: HTMLElement) {
     this.root = rootDiv;
     this.mark = new Mark(rootDiv);
     this.isSearchActive = false;
     this.resultOffset = 0;
-    this.cm = cm;
     this.searchBox = null;
     this.searchContainer = searchContainer;
 
@@ -56,7 +58,7 @@ class SearchCtx {
   render() {
     this.isSearchActive = true;
 
-    let searchDialog = '<span class="CodeMirror-search-label">' + this.cm.phrase("Search:") + '</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
+    let searchDialog = '<span class="CodeMirror-search-label">Search:</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
 
     let searchBox = document.createElement("div");
     searchBox.className = "CodeMirror-dialog CodeMirror-dialog-top";
@@ -116,10 +118,13 @@ export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
   private div: any;
-  private options: any;
+  private viewerOptions: any;
   private adoc: any;
   private cm: any;
   private sctx: SearchCtx;
+
+  private editorView: EditorView;
+
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
@@ -129,9 +134,10 @@ export class AsciidocView extends TextFileView {
     console.log(CodeMirror);
     console.log(this.plugin);
 
+
     // For viewer mode
     this.adoc = asciidoctor();
-    this.options = {
+    this.viewerOptions = {
       standalone: false,
       safe: 'safe',
       attributes: { 'showtitle': true, 'icons': 'font' }
@@ -139,16 +145,29 @@ export class AsciidocView extends TextFileView {
 
     let tmp = document.createElement("div");
 
-    // @ts-ignore
-    /*
-    let view = new EditorView({
-      state: EditorState.create({
-        extensions: [basicSetup, StreamLanguage.define(asciidoc)]
-      })
-    })
-    */
-   asciidoc;
+    let editorState = EditorState.create({
+      extensions: [
+        basicExtensions,
+        StreamLanguage.define(asciidoc),
+
+        // TODO: Figure out how to nicely set language modes.
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            this.save(false);
+          }
+        }),
+      ],
+    });
+    this.editorView = new EditorView({
+      state: editorState,
+      parent: this.contentEl,
+    });
+
+
+
+
     //this.plugin.registerEditorExtension
+   /*
     this.cm = CodeMirror(tmp,
     {
       tabSize: 2,
@@ -166,6 +185,7 @@ export class AsciidocView extends TextFileView {
       allowDropFileTypes: ['image/jpg', 'image/png', 'image/svg', 'image/jpeg', 'image/gif'],
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
     })
+    */
 
     this.addAction("book-open", "preview/editor mode", (evt: MouseEvent ) => { this.changeViewMode() });
   }
@@ -184,8 +204,8 @@ export class AsciidocView extends TextFileView {
 
     if (isEditMode) {
       console.log("render editor");
-      this.div.appendChild(this.cm.getWrapperElement());
-      this.cm.refresh();
+      this.div.appendChild(this.editorView.dom);
+      //this.cm.refresh();
     } else {
       console.log("render viewer");
       this.div.appendChild(this.renderViewerMode());
@@ -193,8 +213,9 @@ export class AsciidocView extends TextFileView {
   }
 
   renderViewerMode() {
-    let contents = this.cm.getValue();
-    let htmlStr = this.adoc.convert(contents, this.options);
+    //let contents = this.cm.getValue();
+    let contents = this.editorView.state.doc.toString();
+    let htmlStr = this.adoc.convert(contents, this.viewerOptions);
 
     let parser = new window.DOMParser();
 
@@ -226,7 +247,7 @@ export class AsciidocView extends TextFileView {
     let root = document.createElement("div");
     root.appendChild(dataEl)
 
-    this.sctx = new SearchCtx(dataEl, root, this.cm);
+    this.sctx = new SearchCtx(dataEl, root);
     return root;
   }
 
@@ -269,15 +290,23 @@ export class AsciidocView extends TextFileView {
   }
 
   getViewData = () => {
-    return this.cm.getValue();
+    return this.editorView.state.doc.toString();
   }
 
   setViewData = (data: string, clear: boolean) => {
-    console.log(`setViewData ${clear} buf = ${data.substr(0, 10)}`)
+    console.log(`setViewData ${clear} ${data.substr(0, 10)}`)
     this.pageData = data;
-    this.cm.setValue(data)
-    if (isEditMode)
-      this.cm.refresh();
+    //this.cm.setValue(data)
+    this.editorView.dispatch({
+      changes: {
+        from: 0,
+        to: this.editorView.state.doc.length,
+        insert: data}
+    })
+    if (isEditMode) {
+      console.log(`TODO_REFRESH ${data.substr(0, 10)}`);
+      //this.cm.refresh();
+    }
     if (clear) {
       if (!isEditMode) {
         deleteChildNodes(this.div);
@@ -287,7 +316,13 @@ export class AsciidocView extends TextFileView {
   }
 
   clear = () => {
-    this.cm.setValue("")
+  console.log("CLEAR")
+    this.editorView.dispatch({
+      changes: {
+        from: 0,
+        to: this.editorView.state.doc.length,
+        insert: ""}
+    })
   }
 
   addKeyEvents() {
@@ -300,7 +335,7 @@ export class AsciidocView extends TextFileView {
 
     type myCallback = () => void;
     const ctrlMap = new Map<number, myCallback >([
-      /* "f" */ [70, () => { this.commandFind() } ],
+      /* "f" */ //[70, () => { this.commandFind() } ],
       /* "e" */ [69, () => { this.changeViewMode() } ],
 
     ]);

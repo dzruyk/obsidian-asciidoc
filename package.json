@@ -17,7 +17,7 @@
 		"@typescript-eslint/parser": "^7.1.1",
 		"asciidoctor": "3.0.4",
 		"builtin-modules": "3.3.0",
-		"codemirror-asciidoc": "1.0.4",
+		"codemirror-asciidoc": "2.0.1",
 		"esbuild": "0.17.3",
 		"eslint": "^8.57.0",
 		"obsidian": "latest",
