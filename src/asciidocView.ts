@@ -8,8 +8,11 @@ import asciidoctor from 'asciidoctor'
 
 import Mark from 'mark.js'
 
-import { StreamLanguage } from "@codemirror/language";
-import { EditorView } from "@codemirror/view";
+//import { StreamLanguage } from "@codemirror/language";
+import { openSearchPanel } from "@codemirror/search"
+
+import { StreamLanguage, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import { EditorView, highlightActiveLine, lineNumbers } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 
 import { basicExtensions } from "./codemirror";
@@ -147,9 +150,10 @@ export class AsciidocView extends TextFileView {
 
     let editorState = EditorState.create({
       extensions: [
-        basicExtensions,
         StreamLanguage.define(asciidoc),
-
+        basicExtensions,
+        lineNumbers(),
+        highlightActiveLine(),
         // TODO: Figure out how to nicely set language modes.
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -335,7 +339,7 @@ export class AsciidocView extends TextFileView {
 
     type myCallback = () => void;
     const ctrlMap = new Map<number, myCallback >([
-      /* "f" */ //[70, () => { this.commandFind() } ],
+      /* "f" */ [70, () => { this.commandFind() } ],
       /* "e" */ [69, () => { this.changeViewMode() } ],
 
     ]);
@@ -351,7 +355,7 @@ export class AsciidocView extends TextFileView {
   commandFind() {
     console.log("command find!");
     if (isEditMode) {
-      CodeMirror.commands.find(this.cm);
+      openSearchPanel(this.editorView);
     } else {
       this.sctx.focus();
     }
