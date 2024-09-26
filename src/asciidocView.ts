@@ -6,9 +6,9 @@ import AsciidocPlugin from "./main"
 
 import asciidoctor from 'asciidoctor'
 
-import Mark from 'mark.js'
-
 //import { StreamLanguage } from "@codemirror/language";
+import {tags} from "@lezer/highlight"
+import { HighlightStyle } from "@codemirror/language"
 import { openSearchPanel } from "@codemirror/search"
 
 import { StreamLanguage, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
@@ -40,82 +40,7 @@ function deleteChildNodes(el: any) {
 
 let isEditMode = true;
 
-class SearchCtx {
-  private isSearchActive: boolean;
-  private mark: any;
-  private root: HTMLElement;
-  private resultOffset: number;
-  private searchBox: HTMLElement;
-  private searchContainer: HTMLElement;
 
-  constructor(rootDiv: HTMLElement, searchContainer: HTMLElement) {
-    this.root = rootDiv;
-    this.mark = new Mark(rootDiv);
-    this.isSearchActive = false;
-    this.resultOffset = 0;
-    this.searchBox = null;
-    this.searchContainer = searchContainer;
-
-  }
-
-  render() {
-    this.isSearchActive = true;
-
-    let searchDialog = '<span class="CodeMirror-search-label">Search:</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
-
-    let searchBox = document.createElement("div");
-    searchBox.className = "CodeMirror-dialog CodeMirror-dialog-top";
-    searchBox.innerHTML = searchDialog;
-    this.searchContainer.insertBefore(searchBox, this.searchContainer.children[0]);
-
-    let collection = searchBox.getElementsByTagName("input");
-    collection[0].addEventListener("keyup", (e: KeyboardEvent) => {
-      if (e.keyCode == 13) {
-        this.search(collection[0].value);
-      }
-    }, true)
-    collection[0].focus();
-
-    this.searchBox = searchBox;
-  }
-
-  search(s: string) {
-    if (!this.isSearchActive) {
-      this.resultOffset = 0;
-    }
-    this.isSearchActive = true;
-    console.log("nextsearch")
-    this.mark.unmark();
-    this.mark.mark(s, { separateWordSearch: false } );
-    let elements = this.root.getElementsByTagName("mark");
-    if (elements.length != 0) {
-      if (this.resultOffset >= elements.length)
-        this.resultOffset = 0;
-
-      elements[this.resultOffset].scrollIntoView();
-      this.resultOffset += 1;
-    }
-  }
-
-  focus() {
-    if (this.isSearchActive) {
-      let collection = this.searchBox.getElementsByTagName("input");
-      if (collection.length)
-        collection[0].focus();
-      return;
-    } else {
-      this.render();
-    }
-  }
-
-  resetSearch() {
-    if (this.isSearchActive) {
-      this.searchBox.remove();
-    }
-    this.isSearchActive = false;
-    //this.searchBox.hidden = true;
-  }
-}
 
 export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
@@ -134,6 +59,9 @@ export class AsciidocView extends TextFileView {
     this.plugin = plugin;
     this.div = null;
     console.log("CONSTRUCTORR");
+
+	console.log(defaultHighlightStyle);
+    console.log("after highlight style");
     console.log(CodeMirror);
     console.log(this.plugin);
 
@@ -148,12 +76,22 @@ export class AsciidocView extends TextFileView {
 
     let tmp = document.createElement("div");
 
+
+    const myHighlightStyle = HighlightStyle.define([
+            {tag: tags.keyword, color: "#fc6"},
+            {tag: tags.comment, color: "#f5d", fontStyle: "italic"}
+    ])
+
+	let hl = syntaxHighlighting(defaultHighlightStyle, {fallback: true});
+
     let editorState = EditorState.create({
       extensions: [
-        StreamLanguage.define(asciidoc),
         basicExtensions,
-        lineNumbers(),
+        //lineNumbers(),
         highlightActiveLine(),
+		hl,
+        //syntaxHighlighting(myHighlightStyle),
+        StreamLanguage.define(asciidoc),
         // TODO: Figure out how to nicely set language modes.
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
