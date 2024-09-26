@@ -2,8 +2,6 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
 import { Component, editorInfoField } from 'obsidian';
 
-import AsciidocPlugin from "./main"
-
 import asciidoctor from 'asciidoctor'
 
 //import { StreamLanguage } from "@codemirror/language";
@@ -15,13 +13,99 @@ import { StreamLanguage, syntaxHighlighting, defaultHighlightStyle } from "@code
 import { EditorView, highlightActiveLine, lineNumbers } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 
-import { basicExtensions } from "./codemirror";
+// syntax highlighting related
+import { ViewPlugin, ViewUpdate, Decoration, DecorationSet } from "@codemirror/view";
+import { Prec, RangeSetBuilder } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
+import { SyntaxNodeRef, Tree } from "@lezer/common";
+import { Highlighter, highlightTree } from "@lezer/highlight";
+//
 
+import AsciidocPlugin from "./main"
+import { basicExtensions } from "./codemirror";
+import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
 //import 'codemirror/lib/codemirror.css'
+//
+function getHighlighters(state:any) {
+  return [defaultHighlightStyle];
+}
+
+// Since Obsidian uses modified Codemirror version we can't rely on
+// regular syntaxHighlighting
+class TreeHighlighterEx {
+  decorations: DecorationSet
+  decoratedTo: number
+  tree: Tree
+  tokenCache: {[cls: string]: Decoration}
+
+  constructor(view: EditorView) {
+    this.tree = syntaxTree(view.state)
+    this.decorations = this.buildDeco(view, getHighlighters(view.state))
+    this.decoratedTo = view.viewport.to
+  this.tokenCache = Object.create(null)
+  }
+
+  update(update: ViewUpdate) {
+    let tree = syntaxTree(update.state), highlighters = getHighlighters(update.state)
+    let styleChange = highlighters != getHighlighters(update.startState)
+    let {viewport} = update.view, decoratedToMapped = update.changes.mapPos(this.decoratedTo, 1)
+    if (tree.length < viewport.to && !styleChange && tree.type == this.tree.type && decoratedToMapped >= viewport.to) {
+      this.decorations = this.decorations.map(update.changes)
+      this.decoratedTo = decoratedToMapped
+    } else if (tree != this.tree || update.viewportChanged || styleChange) {
+      this.tree = tree
+      this.decorations = this.buildDeco(update.view, highlighters)
+      this.decoratedTo = viewport.to
+    }
+  }
+
+  buildDeco(view: EditorView, highlighters: readonly Highlighter[] | null) {
+    if (!highlighters || !this.tree.length) return Decoration.none
+
+    let builder = new RangeSetBuilder<Decoration>()
+
+    for (let rangeIter of view.visibleRanges) {
+      let _this = this;
+
+      function treeHandler (n: any/*SyntaxNodeRef*/) {
+        try {
+          let nm = n.type.props[13];
+          if (!nm)
+            return
+          let cachedEntry
+          if (!(cachedEntry = _this.tokenCache[nm])) {
+            let m = {
+              class: nm.split(" ").map((item: string) => "cm-" + item).join(" "),
+                attributes: {
+                spellcheck: "false"
+              }
+            }
+            cachedEntry = _this.tokenCache[nm] = Decoration.mark(m)
+          }
+          builder.add(n.from, n.to, cachedEntry)
+        } catch (err) {
+          console.log(err);
+        }
+      }
+
+      this.tree.iterate({
+        from: rangeIter.from,
+        to: rangeIter.to,
+        enter: treeHandler,
+      })
+    }
+    return builder.finish()
+  }
+}
+
+const treeHighlighterEx =Prec.high(ViewPlugin.fromClass(TreeHighlighterEx, {
+    decorations: v => v.decorations
+}));
+
 
 function isValidUrl(str: string): boolean {
   let url;
@@ -58,13 +142,9 @@ export class AsciidocView extends TextFileView {
     super(leaf);
     this.plugin = plugin;
     this.div = null;
-    console.log("CONSTRUCTORR");
 
-	console.log(defaultHighlightStyle);
-    console.log("after highlight style");
-    console.log(CodeMirror);
+    //console.log(CodeMirror);
     console.log(this.plugin);
-
 
     // For viewer mode
     this.adoc = asciidoctor();
@@ -76,21 +156,14 @@ export class AsciidocView extends TextFileView {
 
     let tmp = document.createElement("div");
 
-
-    const myHighlightStyle = HighlightStyle.define([
-            {tag: tags.keyword, color: "#fc6"},
-            {tag: tags.comment, color: "#f5d", fontStyle: "italic"}
-    ])
-
-	let hl = syntaxHighlighting(defaultHighlightStyle, {fallback: true});
+  //let hl = syntaxHighlighting(defaultHighlightStyle, {fallback: true});
 
     let editorState = EditorState.create({
       extensions: [
         basicExtensions,
-        //lineNumbers(),
+        lineNumbers(),
+        treeHighlighterEx,
         highlightActiveLine(),
-		hl,
-        //syntaxHighlighting(myHighlightStyle),
         StreamLanguage.define(asciidoc),
         // TODO: Figure out how to nicely set language modes.
         EditorView.updateListener.of((update) => {
@@ -104,30 +177,6 @@ export class AsciidocView extends TextFileView {
       state: editorState,
       parent: this.contentEl,
     });
-
-
-
-
-    //this.plugin.registerEditorExtension
-   /*
-    this.cm = CodeMirror(tmp,
-    {
-      tabSize: 2,
-      mode: "asciidoc",
-      lineNumbers: true,
-      lineWrapping: true,
-      // @ts-ignore
-      line: true,
-      styleActiveLine: true,
-      highlightSelectionMatches: {
-        annotateScrollbar: true
-      },
-      viewportMargin: 2,
-      inputStyle: 'contenteditable',
-      allowDropFileTypes: ['image/jpg', 'image/png', 'image/svg', 'image/jpeg', 'image/gif'],
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
-    })
-    */
 
     this.addAction("book-open", "preview/editor mode", (evt: MouseEvent ) => { this.changeViewMode() });
   }
@@ -272,7 +321,7 @@ export class AsciidocView extends TextFileView {
   }
 
   private keyHandle = (event: KeyboardEvent) => {
-    if (app.workspace.activeLeaf != this.leaf)
+    if (this.app.workspace.activeLeaf != this.leaf)
       return;
 
     type myCallback = () => void;

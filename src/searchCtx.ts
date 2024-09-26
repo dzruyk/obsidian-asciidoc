@@ -1,11 +1,11 @@
 import Mark from 'mark.js'
 
-class SearchCtx {
+export class SearchCtx {
   private isSearchActive: boolean;
   private mark: any;
   private root: HTMLElement;
   private resultOffset: number;
-  private searchBox: HTMLElement;
+  private searchBox: HTMLElement | null;
   private searchContainer: HTMLElement;
 
   constructor(rootDiv: HTMLElement, searchContainer: HTMLElement) {
@@ -57,7 +57,7 @@ class SearchCtx {
   }
 
   focus() {
-    if (this.isSearchActive) {
+    if (this.isSearchActive && this.searchBox) {
       let collection = this.searchBox.getElementsByTagName("input");
       if (collection.length)
         collection[0].focus();
@@ -68,7 +68,7 @@ class SearchCtx {
   }
 
   resetSearch() {
-    if (this.isSearchActive) {
+    if (this.isSearchActive && this.searchBox) {
       this.searchBox.remove();
     }
     this.isSearchActive = false;
