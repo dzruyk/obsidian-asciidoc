@@ -28,6 +28,12 @@ import { asciidoc } from "codemirror-asciidoc";
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
+declare var CodeMirror: any;
+
+function adoc() {return asciidoc; }
+CodeMirror.defineMode("asciidoc", adoc)
+CodeMirror.defineMIME("text/asciidoc", "asciidoc")
+
 //import 'codemirror/lib/codemirror.css'
 //
 function getHighlighters(state:any) {
@@ -35,7 +41,7 @@ function getHighlighters(state:any) {
 }
 
 // Since Obsidian uses modified Codemirror version we can't rely on
-// regular syntaxHighlighting
+// regular syntaxHighlighting and need to implement our highlighter from scratch
 class TreeHighlighterEx {
   decorations: DecorationSet
   decoratedTo: number
@@ -73,6 +79,13 @@ class TreeHighlighterEx {
 
       function treeHandler (n: any/*SyntaxNodeRef*/) {
         try {
+          //13 -- is magic number for node property
+          //that stores highlight type info.
+          //Codemirror allow to add additional info to nodes with `NodeProp`.
+          //Every new NodeProp reserves its own index.
+          //Codemirror defines few NodeProp, that we can use, for example
+          //NodeProp.lookAhead, NodeProp.mounted
+          //But obisidian defines it's own properties and it's part of private API that we can't acces, so we use this magic number and hope its works stable enough
           let nm = n.type.props[13];
           if (!nm)
             return
