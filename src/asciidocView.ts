@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TextFileView, TFile } from 'obsidian';
 import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
-import { Component, editorInfoField } from 'obsidian';
+import { Component, editorInfoField, loadPrism } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
@@ -19,7 +19,7 @@ import { Prec, RangeSetBuilder } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNodeRef, Tree } from "@lezer/common";
 import { Highlighter, highlightTree } from "@lezer/highlight";
-//
+
 
 import AsciidocPlugin from "./main"
 import { basicExtensions } from "./codemirror";
@@ -29,10 +29,13 @@ import { asciidoc } from "codemirror-asciidoc";
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
 declare var CodeMirror: any;
+declare var Prism: any;
 
 function adoc() {return asciidoc; }
 CodeMirror.defineMode("asciidoc", adoc)
 CodeMirror.defineMIME("text/asciidoc", "asciidoc")
+
+loadPrism().then(x => { })
 
 //import 'codemirror/lib/codemirror.css'
 //
@@ -248,6 +251,18 @@ export class AsciidocView extends TextFileView {
         this.app.workspace.openLinkText(txt, '', false);
       }
     }
+
+    collection = dataEl.getElementsByTagName("pre");
+    for (let item of collection) {
+      if (item.className == "highlight" && item.children.length == 1) {
+        let className = item.children[0].className;
+        if (className.startsWith("language-")) {
+          item.className = className;
+          Prism.highlightElement(item);
+        }
+      }
+    }
+
     let root = document.createElement("div");
     root.appendChild(dataEl)
 
