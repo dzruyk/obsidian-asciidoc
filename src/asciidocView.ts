@@ -270,12 +270,17 @@ export class AsciidocView extends TextFileView {
     collection = dataEl.getElementsByTagName("img");
     for (let item of collection) {
       let path = item.src
-      if (item.src.startsWith(item.baseURI)) {
-        path = item.src.substr(item.baseURI.length)
+      let commonPrefix = "app://obsidian.md/"
+      if (path.startsWith(commonPrefix)) {
+        path = path.substr(commonPrefix.length)
       }
-      let file = app.vault.getAbstractFileByPath("tmp.png")
+      path = unescape(path);
+      console.log("filepath = ", path, item.baseURI);
+      let file = app.vault.getAbstractFileByPath(path);
+
       if (file) {
         item.src = this.app.vault.getResourcePath(file);
+        console.log("file found", file, item.src);
       }
     }
 
