@@ -1,9 +1,9 @@
 {
-	"id": "asciidoctor-viewer-plugin",
-	"name": "Asciidoctor Viewer Plugin",
+	"id": "asciidoctor-editor-plugin",
+	"name": "Asciidoctor editor plugin",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Asiidoc viewer plugin (under deep-deep development)",
+	"description": "Asiidoc editor plugin",
 	"author": "dzruyk",
 	"authorUrl": "https://github.com/dzruyk",
 	"fundingUrl": "https://тыл-22.рф/",

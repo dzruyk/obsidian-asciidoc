@@ -1,6 +1,6 @@
 # Obsidian Asciidoc editor plugin
 
-A PoC plugin that allows you to edit and view documents in the asciidoc language
+A plugin that allows you to edit and view documents in the asciidoc language.
 
 The plugin supports view and edit modes (switching the mode with `ctrl+e` hotkey). Substring search in document is partially supported.
 

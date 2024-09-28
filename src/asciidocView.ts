@@ -37,8 +37,17 @@ CodeMirror.defineMIME("text/asciidoc", "asciidoc")
 
 loadPrism().then(x => { })
 
-//import 'codemirror/lib/codemirror.css'
-//
+/*
+ * 13 -- is magic number for node property
+ * that stores highlight type info.
+ * Codemirror allows you to add additional info to nodes using class `NodeProp`.
+ * Every new `NodeProp` reserves its own index.
+ * Codemirror defines several public NodeProp, for example
+ * NodeProp.lookAhead, NodeProp.mounted
+ * But obisidian defines it's own properties and it's part of private API that we can't acces, so we use this magic number and hope its works stable enough.
+*/
+const tokenInfoPropId: number = 13;
+
 function getHighlighters(state:any) {
   return [defaultHighlightStyle];
 }
@@ -82,14 +91,7 @@ class TreeHighlighterEx {
 
       function treeHandler (n: any/*SyntaxNodeRef*/) {
         try {
-          //13 -- is magic number for node property
-          //that stores highlight type info.
-          //Codemirror allow to add additional info to nodes with `NodeProp`.
-          //Every new NodeProp reserves its own index.
-          //Codemirror defines few NodeProp, that we can use, for example
-          //NodeProp.lookAhead, NodeProp.mounted
-          //But obisidian defines it's own properties and it's part of private API that we can't acces, so we use this magic number and hope its works stable enough
-          let nm = n.type.props[13];
+                    let nm = n.type.props[tokenInfoPropId];
           if (!nm)
             return
           let cachedEntry
@@ -159,9 +161,6 @@ export class AsciidocView extends TextFileView {
     this.plugin = plugin;
     this.div = null;
 
-    //console.log(CodeMirror);
-    console.log(this.plugin);
-
     // For viewer mode
     this.adoc = asciidoctor();
     this.viewerOptions = {
@@ -171,8 +170,6 @@ export class AsciidocView extends TextFileView {
     };
 
     let tmp = document.createElement("div");
-
-  //let hl = syntaxHighlighting(defaultHighlightStyle, {fallback: true});
 
     let editorState = EditorState.create({
       extensions: [
@@ -191,7 +188,7 @@ export class AsciidocView extends TextFileView {
     });
     this.editorView = new EditorView({
       state: editorState,
-      parent: this.contentEl,
+      //parent: this.contentEl,
     });
 
     this.addAction("book-open", "preview/editor mode", (evt: MouseEvent ) => { this.changeViewMode() });
@@ -199,22 +196,18 @@ export class AsciidocView extends TextFileView {
 
   changeViewMode() {
     isEditMode = !isEditMode;
-    console.log("change edit mode ", isEditMode);
     deleteChildNodes(this.div);
     this.renderCurrentMode();
   }
 
   renderCurrentMode() {
     if (!this.div) {
-      console.log("SHOULD NOT REACH");
     }
 
     if (isEditMode) {
-      console.log("render editor");
       this.div.appendChild(this.editorView.dom);
       //this.cm.refresh();
     } else {
-      console.log("render viewer");
       this.div.appendChild(this.renderViewerMode());
     }
   }
@@ -229,7 +222,7 @@ export class AsciidocView extends TextFileView {
     let dataEl = document.createElement("div");
 
     dataEl.innerHTML = htmlStr;
-    let collection = dataEl.getElementsByTagName("a");
+    let collection : any = dataEl.getElementsByTagName("a");
 
     while (collection.length > 0) {
       let item = collection[0];
@@ -247,7 +240,6 @@ export class AsciidocView extends TextFileView {
       }
 
       div.onclick = () => {
-        console.log(`CLICK ${txt}`);
         this.app.workspace.openLinkText(txt, '', false);
       }
     }
@@ -275,12 +267,10 @@ export class AsciidocView extends TextFileView {
         path = path.substr(commonPrefix.length)
       }
       path = unescape(path);
-      console.log("filepath = ", path, item.baseURI);
-      let file = app.vault.getAbstractFileByPath(path);
+      let file = this.app.vault.getAbstractFileByPath(path);
 
       if (file) {
-        item.src = this.app.vault.getResourcePath(file);
-        console.log("file found", file, item.src);
+        item.src = this.app.vault.getResourcePath(<TFile>file);
       }
     }
 
@@ -296,8 +286,6 @@ export class AsciidocView extends TextFileView {
   }
 
   async onLoadFile(file: TFile) {
-    console.log("onLoadFile", isEditMode);
-
     if (this.div == null)
       this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
 
@@ -307,7 +295,6 @@ export class AsciidocView extends TextFileView {
   }
 
   async onUnloadFile(file: TFile) {
-    console.log("onUnloadFile ", isEditMode)
     window.removeEventListener('keydown', this.keyHandle, true);
     await super.onUnloadFile(file);
     deleteChildNodes(this.div);
@@ -315,7 +302,6 @@ export class AsciidocView extends TextFileView {
 
   async onClose() {
     await super.onClose();
-    console.log("onClose")
   }
 
   onResize() {
@@ -334,7 +320,6 @@ export class AsciidocView extends TextFileView {
   }
 
   setViewData = (data: string, clear: boolean) => {
-    console.log(`setViewData ${clear} ${data.substr(0, 10)}`)
     this.pageData = data;
     //this.cm.setValue(data)
     this.editorView.dispatch({
@@ -344,7 +329,6 @@ export class AsciidocView extends TextFileView {
         insert: data}
     })
     if (isEditMode) {
-      console.log(`TODO_REFRESH ${data.substr(0, 10)}`);
       //this.cm.refresh();
     }
     if (clear) {
@@ -356,7 +340,6 @@ export class AsciidocView extends TextFileView {
   }
 
   clear = () => {
-  console.log("CLEAR")
     this.editorView.dispatch({
       changes: {
         from: 0,
@@ -389,7 +372,6 @@ export class AsciidocView extends TextFileView {
   }
 
   commandFind() {
-    console.log("command find!");
     if (isEditMode) {
       openSearchPanel(this.editorView);
     } else {
@@ -398,7 +380,6 @@ export class AsciidocView extends TextFileView {
   }
 
   commandEsc() {
-    console.log('esc')
     if (isEditMode)
       return;
     this.sctx.resetSearch();

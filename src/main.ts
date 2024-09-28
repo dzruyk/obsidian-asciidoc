@@ -22,11 +22,7 @@ export default class AsciidocPlugin extends Plugin {
     //this.registerEditorExtension([this.cmExtension]);
     //this.updateEditorExtensions();
 
-    console.log("this.app.workspace")
-    console.log(this.app.workspace)
     this.registerExtensions(["adoc", "asciidoc"], ASCIIDOC_EDITOR_VIEW);
-    console.log(this)
-
     this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf))
 
     // This adds a status bar item to the bottom of the app. Does not work on mobile apps.
@@ -58,9 +54,6 @@ export default class AsciidocPlugin extends Plugin {
     }
 
     });
-
-    // When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-    this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
   }
 
   public updateEditorExtensions() {
@@ -68,12 +61,10 @@ export default class AsciidocPlugin extends Plugin {
     //this.cmExtension.push(ExamplePlugin)
     //this.cmExtension.push(asciidocEditorPlugin(/*this.app, this.index, this.settings, this.api*/));
     this.app.workspace.updateOptions();
-
   }
 
   onunload() {
     this.app.viewRegistry.unregisterExtensions([".adoc", ".asciidoc"]);
-    //this.registerExtensions([".md"], 'markdown');
     this.app.workspace.detachLeavesOfType(ASCIIDOC_EDITOR_VIEW);
   }
 
