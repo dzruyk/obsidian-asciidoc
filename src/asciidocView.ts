@@ -256,7 +256,11 @@ export class AsciidocView extends TextFileView {
     for (let item of collection) {
       if (item.className == "highlight" && item.children.length == 1) {
         let className = item.children[0].className;
-        if (className.startsWith("language-")) {
+        if (className == "language-diagram" ) {
+          let html = atob(item.children[0].innerText);
+          item.innerHTML=html;
+
+        } else if (className.startsWith("language-")) {
           item.className = className;
           Prism.highlightElement(item);
         }
