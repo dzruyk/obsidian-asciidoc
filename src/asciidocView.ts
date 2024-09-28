@@ -263,6 +263,18 @@ export class AsciidocView extends TextFileView {
       }
     }
 
+    collection = dataEl.getElementsByTagName("img");
+    for (let item of collection) {
+      let path = item.src
+      if (item.src.startsWith(item.baseURI)) {
+        path = item.src.substr(item.baseURI.length)
+      }
+      let file = app.vault.getAbstractFileByPath("tmp.png")
+      if (file) {
+        item.src = this.app.vault.getResourcePath(file);
+      }
+    }
+
     let root = document.createElement("div");
     root.appendChild(dataEl)
 
