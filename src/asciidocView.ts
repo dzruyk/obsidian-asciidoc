@@ -249,8 +249,28 @@ export class AsciidocView extends TextFileView {
       if (item.className == "highlight" && item.children.length == 1) {
         let className = item.children[0].className;
         if (className == "language-diagram" ) {
+          // render drawio svg image (for processing asciidoc wiki.js pages)
           let html = atob(item.children[0].innerText);
-          item.innerHTML=html;
+          //sanitize html contents for security reasons
+          const parser = new DOMParser();
+          let diagramDoc: any = parser.parseFromString(html, "application/xml");
+          let svg;
+          if (diagramDoc) {
+            for (let child of diagramDoc.childNodes) {
+              if (child.tagName != "svg")
+                continue;
+              svg = child;
+              break;
+            }
+          }
+          if (svg) {
+            for (let child of svg.children) {
+              if (child.tagName && child.tagName.toLowerCase() == "script")
+                svg.removeChild(child);
+            }
+            item.removeChild(item.lastChild);
+            item.appendChild(svg);
+          }
 
         } else if (className.startsWith("language-")) {
           item.className = className;
