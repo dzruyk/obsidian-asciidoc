@@ -1,6 +1,6 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TextFileView, TFile } from 'obsidian';
 import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
-import { Command, Component, editorInfoField, loadPrism } from 'obsidian';
+import { Command, Component, editorInfoField, Hotkey, loadPrism, Modifier } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
@@ -128,6 +128,8 @@ const treeHighlighterEx =Prec.high(ViewPlugin.fromClass(TreeHighlighterEx, {
 type myCallback = () => void;
 
 class KeyInfo {
+  keyName: string
+  mask: number
 
   constructor(keyName: string, isShift: boolean = false, isCtrl: boolean = false, isAlt: boolean = false) {
     this.keyName = keyName;
@@ -150,11 +152,11 @@ class KeyInfo {
 
   static fromHotkey(hk: Hotkey) {
     let keyName = hk.key
-    let checkModifier = (modName) => modName.includes(hk.modifiers)
+    let checkModifier = (modName: Modifier) => hk.modifiers.includes(modName)
     return new KeyInfo(keyName, checkModifier("Shift"), checkModifier("Mod"), checkModifier("Alt"))
   }
 
-  matchEventModifiers(event: KeyboardEvent): true {
+  matchEventModifiers(event: KeyboardEvent): boolean {
     let mask = this.modifiersToMask(event.shiftKey, event.ctrlKey, event.altKey);
     if ((this.mask & mask) == this.mask)
       return true
@@ -162,16 +164,16 @@ class KeyInfo {
   }
 }
 
-class KeyboarCallbacks {
-  keyMap: Map<int, KeyInfo>;
-  callbacks: Map<int, myCallback>;
+class KeyboardCallbacks {
+  keyMap: Map<string, KeyInfo>;
+  callbacks: Map<string, myCallback>;
 
   constructor() {
     this.keyMap = new Map<string, KeyInfo>()
     this.callbacks = new Map<string, myCallback>()
   }
 
-  registerKey(ki: KeyInfo, callback) {
+  registerKey(ki: KeyInfo, callback: myCallback) {
     this.keyMap.set(ki.keyName, ki);
     this.callbacks.set(ki.keyName, callback);
   }
@@ -191,7 +193,9 @@ class KeyboarCallbacks {
     if (!ki)
       return;
     if (ki.matchEventModifiers(event)) {
-      this.callbacks.get(ki.keyName)();
+      const cb = this.callbacks.get(ki.keyName)
+      if (cb)
+        cb();
     }
   }
 }
@@ -238,7 +242,7 @@ export class AsciidocView extends TextFileView {
       safe: 'safe',
       attributes: { 'showtitle': true, 'icons': 'font' }
     };
-    this.keyMap = new KeyboarCallbacks()
+    this.keyMap = new KeyboardCallbacks()
 
     let tmp = document.createElement("div");
 
@@ -444,13 +448,16 @@ export class AsciidocView extends TextFileView {
 
   addKeyEvents() {
     // For our Asciidoc view We need to override some obsidian markdown related hotkeys
-    let getHotkey = (nm) => {
+    let getHotkey = (nm: string) => {
+      // @ts-ignore
       if (this.app.hotkeyManager) {
+        // @ts-ignore
         let tmp =  this.app.hotkeyManager.customKeys[nm]
         if (tmp && tmp.length)
           return tmp[0]
       }
 
+      // @ts-ignore
       let command = this.app.commands.findCommand(nm)
 
       if (command.hotkeys && command.hotkeys.length > 0) {
