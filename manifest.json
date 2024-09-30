@@ -1,9 +1,9 @@
 {
-	"id": "asciidoctor-editor-plugin",
-	"name": "Asciidoctor editor plugin",
-	"version": "1.0.0",
+	"id": "asciidoctor-editor",
+	"name": "Asciidoctor editor",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Asiidoc editor plugin",
+	"description": "View and modify asciidoc pages in obsidian",
 	"author": "dzruyk",
 	"authorUrl": "https://github.com/dzruyk",
 	"fundingUrl": "https://тыл-22.рф/",
