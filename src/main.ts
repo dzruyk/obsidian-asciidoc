@@ -3,24 +3,20 @@ import { App, Plugin, TFile, PluginSettingTab, Setting, Menu, MenuItem } from 'o
 import { AdocNewFileModal } from './adocNewFileModal';
 import { AsciidocView, ASCIIDOC_EDITOR_VIEW } from './asciidocView';
 
-interface MyPluginSettings {
+interface AsciidocPluginSettings {
   mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: AsciidocPluginSettings = {
   mySetting: 'default'
 }
 
 export default class AsciidocPlugin extends Plugin {
-  settings: MyPluginSettings;
+  settings: AsciidocPluginSettings;
   app: any;
 
   async onload() {
     await this.loadSettings();
-
-    //this.cmExtension = []
-    //this.registerEditorExtension([this.cmExtension]);
-    //this.updateEditorExtensions();
 
     this.registerExtensions(["adoc", "asciidoc"], ASCIIDOC_EDITOR_VIEW);
     this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf))
@@ -49,17 +45,13 @@ export default class AsciidocPlugin extends Plugin {
     this.addCommand({
       id: 'create-adoc',
       name: 'create new Asciidoc file',
-    callback: () => {
-      new AdocNewFileModal(this).open();
-    }
-
+      callback: () => {
+          new AdocNewFileModal(this).open();
+      }
     });
   }
 
   public updateEditorExtensions() {
-    //this.cmExtension.length = 0;
-    //this.cmExtension.push(ExamplePlugin)
-    //this.cmExtension.push(asciidocEditorPlugin(/*this.app, this.index, this.settings, this.api*/));
     this.app.workspace.updateOptions();
   }
 
@@ -77,7 +69,7 @@ export default class AsciidocPlugin extends Plugin {
   }
 }
 
-class SampleSettingTab extends PluginSettingTab {
+class AsciidocSettingTab extends PluginSettingTab {
   plugin: AsciidocPlugin;
 
   constructor(app: App, plugin: AsciidocPlugin) {

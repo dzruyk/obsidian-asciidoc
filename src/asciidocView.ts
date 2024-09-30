@@ -1,11 +1,11 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TextFileView, TFile } from 'obsidian';
 import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
-import { Component, editorInfoField, loadPrism } from 'obsidian';
+import { Command, Component, editorInfoField, loadPrism } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
 //import { StreamLanguage } from "@codemirror/language";
-import {tags} from "@lezer/highlight"
+import { tags } from "@lezer/highlight"
 import { HighlightStyle } from "@codemirror/language"
 import { openSearchPanel } from "@codemirror/search"
 
@@ -64,7 +64,7 @@ class TreeHighlighterEx {
     this.tree = syntaxTree(view.state)
     this.decorations = this.buildDeco(view, getHighlighters(view.state))
     this.decoratedTo = view.viewport.to
-  this.tokenCache = Object.create(null)
+    this.tokenCache = Object.create(null)
   }
 
   update(update: ViewUpdate) {
@@ -91,7 +91,7 @@ class TreeHighlighterEx {
 
       function treeHandler (n: any/*SyntaxNodeRef*/) {
         try {
-                    let nm = n.type.props[tokenInfoPropId];
+          let nm = n.type.props[tokenInfoPropId];
           if (!nm)
             return
           let cachedEntry
@@ -125,6 +125,77 @@ const treeHighlighterEx =Prec.high(ViewPlugin.fromClass(TreeHighlighterEx, {
 }));
 
 
+type myCallback = () => void;
+
+class KeyInfo {
+
+  constructor(keyName: string, isShift: boolean = false, isCtrl: boolean = false, isAlt: boolean = false) {
+    this.keyName = keyName;
+    //assume this is some keyboard key
+    if (this.keyName.length == 1)
+      this.keyName = "Key" + this.keyName.toUpperCase();
+    this.mask = this.modifiersToMask(isShift, isCtrl, isAlt);
+  }
+
+  modifiersToMask(isShift: boolean = false, isCtrl: boolean = false, isAlt: boolean = false): number {
+    let modifiers = 0;
+    if (isShift)
+      modifiers |= 1;
+    if (isCtrl)
+      modifiers |= 2;
+    if (isAlt)
+      modifiers |= 4;
+    return modifiers;
+  }
+
+  static fromHotkey(hk: Hotkey) {
+    let keyName = hk.key
+    let checkModifier = (modName) => modName.includes(hk.modifiers)
+    return new KeyInfo(keyName, checkModifier("Shift"), checkModifier("Mod"), checkModifier("Alt"))
+  }
+
+  matchEventModifiers(event: KeyboardEvent): true {
+    let mask = this.modifiersToMask(event.shiftKey, event.ctrlKey, event.altKey);
+    if ((this.mask & mask) == this.mask)
+      return true
+    return false
+  }
+}
+
+class KeyboarCallbacks {
+  keyMap: Map<int, KeyInfo>;
+  callbacks: Map<int, myCallback>;
+
+  constructor() {
+    this.keyMap = new Map<string, KeyInfo>()
+    this.callbacks = new Map<string, myCallback>()
+  }
+
+  registerKey(ki: KeyInfo, callback) {
+    this.keyMap.set(ki.keyName, ki);
+    this.callbacks.set(ki.keyName, callback);
+  }
+
+  registerObsidianHotkey(hk: Hotkey, defaultKey: KeyInfo, callback: myCallback) {
+    let ki;
+    if (hk) {
+      ki = KeyInfo.fromHotkey(hk);
+    } else {
+      ki = defaultKey;
+    }
+    this.registerKey(ki, callback);
+  }
+
+  handleKeyboardEvent(event: KeyboardEvent) {
+    let ki = this.keyMap.get(event.code);
+    if (!ki)
+      return;
+    if (ki.matchEventModifiers(event)) {
+      this.callbacks.get(ki.keyName)();
+    }
+  }
+}
+
 function isValidUrl(str: string): boolean {
   let url;
   try {
@@ -142,8 +213,6 @@ function deleteChildNodes(el: any) {
 
 let isEditMode = true;
 
-
-
 export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
@@ -154,6 +223,7 @@ export class AsciidocView extends TextFileView {
   private sctx: SearchCtx;
 
   private editorView: EditorView;
+  private keyMap: KeyboardCallbacks;
 
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
@@ -168,6 +238,7 @@ export class AsciidocView extends TextFileView {
       safe: 'safe',
       attributes: { 'showtitle': true, 'icons': 'font' }
     };
+    this.keyMap = new KeyboarCallbacks()
 
     let tmp = document.createElement("div");
 
@@ -222,76 +293,79 @@ export class AsciidocView extends TextFileView {
     let dataEl = document.createElement("div");
 
     dataEl.innerHTML = htmlStr;
-    let collection : any = dataEl.getElementsByTagName("a");
+    try {
+      let collection : any = dataEl.getElementsByTagName("a");
 
-    while (collection.length > 0) {
-      let item = collection[0];
+      while (collection.length > 0) {
+        let item = collection[0];
 
-      let txt = item.getText().trim();
-      let cls = "cm-hmd-internal-link";
-      if (isValidUrl(txt)) {
-        cls = "cm-url";
-      }
-      let s = `<span class="${cls}" spellcheck="false"><span class="cm-underline" draggable="true"> ${txt} </span></span>`;
-      let div = document.createElement('div');
-      div.innerHTML = s;
-      if (item.parentNode) {
-        item.parentNode.replaceChild(div, item);
-      }
+        let txt = item.getText().trim();
+        let cls = "cm-hmd-internal-link";
+        if (isValidUrl(txt)) {
+          cls = "cm-url";
+        }
+        let s = `<span class="${cls}" spellcheck="false"><span class="cm-underline" draggable="true"> ${txt} </span></span>`;
+        let div = document.createElement('div');
+        div.innerHTML = s;
+        if (item.parentNode) {
+          item.parentNode.replaceChild(div, item);
+        }
 
-      div.onclick = () => {
-        this.app.workspace.openLinkText(txt, '', false);
-      }
-    }
-
-    collection = dataEl.getElementsByTagName("pre");
-    for (let item of collection) {
-      if (item.className == "highlight" && item.children.length == 1) {
-        let className = item.children[0].className;
-        if (className == "language-diagram" ) {
-          // render drawio svg image (for processing asciidoc wiki.js pages)
-          let html = atob(item.children[0].innerText);
-          //sanitize html contents for security reasons
-          const parser = new DOMParser();
-          let diagramDoc: any = parser.parseFromString(html, "application/xml");
-          let svg;
-          if (diagramDoc) {
-            for (let child of diagramDoc.childNodes) {
-              if (child.tagName != "svg")
-                continue;
-              svg = child;
-              break;
-            }
-          }
-          if (svg) {
-            for (let child of svg.children) {
-              if (child.tagName && child.tagName.toLowerCase() == "script")
-                svg.removeChild(child);
-            }
-            item.removeChild(item.lastChild);
-            item.appendChild(svg);
-          }
-
-        } else if (className.startsWith("language-")) {
-          item.className = className;
-          Prism.highlightElement(item);
+        div.onclick = () => {
+          this.app.workspace.openLinkText(txt, '', false);
         }
       }
-    }
 
-    collection = dataEl.getElementsByTagName("img");
-    for (let item of collection) {
-      let path = item.src
-      let commonPrefix = "app://obsidian.md/"
-      if (path.startsWith(commonPrefix)) {
-        path = path.substr(commonPrefix.length)
-      }
-      path = unescape(path);
-      let file = this.app.vault.getAbstractFileByPath(path);
+      collection = dataEl.getElementsByTagName("pre");
+      for (let item of collection) {
+        if (item.className == "highlight" && item.children.length == 1) {
+          let className = item.children[0].className;
+          if (className == "language-diagram") {
+            // render drawio svg image (for processing asciidoc wiki.js pages)
+            let html = atob(item.children[0].innerText);
+            //sanitize html contents for security reasons
+            const parser = new DOMParser();
+            let diagramDoc: any = parser.parseFromString(html, "application/xml");
+            let svg;
+            if (diagramDoc) {
+              for (let child of diagramDoc.childNodes) {
+                if (child.tagName != "svg")
+                  continue;
+                svg = child;
+                break;
+              }
+            }
+            if (svg) {
+              for (let child of svg.children) {
+                if (child.tagName && child.tagName.toLowerCase() == "script")
+                  svg.removeChild(child);
+              }
+              item.replaceChild(svg, item.lastChild);
+            }
 
-      if (file) {
-        item.src = this.app.vault.getResourcePath(<TFile>file);
+          } else if (className.startsWith("language-")) {
+            item.className = className;
+            Prism.highlightElement(item);
+          }
+        }
       }
+
+      collection = dataEl.getElementsByTagName("img");
+      for (let item of collection) {
+        let path = item.src
+        let commonPrefix = "app://obsidian.md/"
+        if (path.startsWith(commonPrefix)) {
+          path = path.substr(commonPrefix.length)
+        }
+        path = unescape(path);
+        let file = this.app.vault.getAbstractFileByPath(path);
+
+        if (file) {
+          item.src = this.app.vault.getResourcePath(<TFile>file);
+        }
+      }
+    } catch (err) {
+      console.log(err);
     }
 
     let root = document.createElement("div");
@@ -369,6 +443,30 @@ export class AsciidocView extends TextFileView {
   }
 
   addKeyEvents() {
+    // For our Asciidoc view We need to override some obsidian markdown related hotkeys
+    let getHotkey = (nm) => {
+      if (this.app.hotkeyManager) {
+        let tmp =  this.app.hotkeyManager.customKeys[nm]
+        if (tmp && tmp.length)
+          return tmp[0]
+      }
+
+      let command = this.app.commands.findCommand(nm)
+
+      if (command.hotkeys && command.hotkeys.length > 0) {
+        return command.hotkeys[0];
+      }
+      return undefined;
+    }
+
+    this.keyMap.registerObsidianHotkey(getHotkey("markdown:toggle-preview"),
+        new KeyInfo("E", false, true, false),
+        () => { this.changeViewMode() } )
+    this.keyMap.registerObsidianHotkey(getHotkey("editor:open-search"),
+        new KeyInfo("F", false, true, false),
+        () => { this.commandFind() })
+    this.keyMap.registerKey(new KeyInfo("Escape"), () => { this.commandEsc() })
+
     window.addEventListener('keydown', this.keyHandle, true);
   }
 
@@ -376,19 +474,7 @@ export class AsciidocView extends TextFileView {
     if (this.app.workspace.activeLeaf != this.leaf)
       return;
 
-    type myCallback = () => void;
-    const ctrlMap = new Map<number, myCallback >([
-      /* "f" */ [70, () => { this.commandFind() } ],
-      /* "e" */ [69, () => { this.changeViewMode() } ],
-
-    ]);
-    if (event.ctrlKey) {
-      const cb = ctrlMap.get(event.keyCode);
-      if (cb)
-        cb()
-    } else if (event.key == 'Escape') {
-      this.commandEsc()
-    }
+    this.keyMap.handleKeyboardEvent(event);
   }
 
   commandFind() {
