@@ -220,10 +220,9 @@ let isEditMode = true;
 export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
-  private div: any;
+  private div: HTMLElement;
   private viewerOptions: any;
   private adoc: any;
-  private cm: any;
   private sctx: SearchCtx;
 
   private editorView: EditorView;
@@ -233,7 +232,7 @@ export class AsciidocView extends TextFileView {
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
     this.plugin = plugin;
-    this.div = null;
+    this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
 
     // For viewer mode
     this.adoc = asciidoctor();
@@ -271,24 +270,23 @@ export class AsciidocView extends TextFileView {
 
   changeViewMode() {
     isEditMode = !isEditMode;
-    deleteChildNodes(this.div);
     this.renderCurrentMode();
   }
 
   renderCurrentMode() {
     if (!this.div) {
+      console.log("No target div, SHOULD NOT REACH");
+      return;
     }
 
     if (isEditMode) {
-      this.div.appendChild(this.editorView.dom);
-      //this.cm.refresh();
+      this.div.replaceChildren(this.editorView.dom);
     } else {
-      this.div.appendChild(this.renderViewerMode());
+      this.renderViewerMode(this.div);
     }
   }
 
-  renderViewerMode() {
-    //let contents = this.cm.getValue();
+  renderViewerMode(parentEl: HTMLElement) {
     let contents = this.editorView.state.doc.toString();
     let htmlStr = this.adoc.convert(contents, this.viewerOptions);
 
@@ -376,7 +374,7 @@ export class AsciidocView extends TextFileView {
     root.appendChild(dataEl)
 
     this.sctx = new SearchCtx(dataEl, root);
-    return root;
+    parentEl.replaceChildren(root);
   }
 
   async onOpen() {
@@ -384,8 +382,6 @@ export class AsciidocView extends TextFileView {
   }
 
   async onLoadFile(file: TFile) {
-    if (this.div == null)
-      this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
 
     this.renderCurrentMode()
     this.addKeyEvents();
@@ -419,20 +415,15 @@ export class AsciidocView extends TextFileView {
 
   setViewData = (data: string, clear: boolean) => {
     this.pageData = data;
-    //this.cm.setValue(data)
     this.editorView.dispatch({
       changes: {
         from: 0,
         to: this.editorView.state.doc.length,
         insert: data}
     })
-    if (isEditMode) {
-      //this.cm.refresh();
-    }
     if (clear) {
       if (!isEditMode) {
-        deleteChildNodes(this.div);
-        this.div.appendChild(this.renderViewerMode());
+        this.renderViewerMode(this.div);
       }
     }
   }
