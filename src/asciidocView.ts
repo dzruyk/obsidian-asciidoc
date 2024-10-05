@@ -304,34 +304,18 @@ export class AsciidocView extends TextFileView {
     try {
       let collection : any = dataEl.getElementsByTagName("a");
 
-      while (collection.length > 0) {
-        let item = collection[0];
-
+      for (let item of collection) {
         let txt = item.getText().trim();
-        let cls = "cm-hmd-internal-link";
+        item.className = "internal-link"
         if (isValidUrl(txt)) {
-          cls = "cm-url";
+          item.className = "external-link"
+        } else {
+          item.onclick = () => {
+            this.app.workspace.openLinkText(txt, '', false);
+          }
         }
-        const outerSpan = createEl("span", {
-          class: cls,
-          spellcheck: "false",
-        });
-        outerSpan.appendChild(
-          createEl("span", {
-            class: "cm-underline",
-            draggable: "true",
-            textContent: txt
-          })
-        )
-        let div = document.createElement('div');
-        div.appendChild(outerSpan)
-        if (item.parentNode) {
-          item.parentNode.replaceChild(div, item);
-        }
-
-        div.onclick = () => {
-          this.app.workspace.openLinkText(txt, '', false);
-        }
+        item.setAttribute("rel", "noopener")
+        item.setAttribute("target", "_blank")
       }
 
       collection = dataEl.getElementsByTagName("pre");
