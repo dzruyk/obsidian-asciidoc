@@ -1,4 +1,5 @@
 import Mark from 'mark.js'
+import { createEl } from "./util"
 
 export class SearchCtx {
   private isSearchActive: boolean;
@@ -20,13 +21,26 @@ export class SearchCtx {
   render() {
     this.isSearchActive = true;
 
-    let searchDialog = '<span class="CodeMirror-search-label">Search:</span> <input type="text" style="width: 10em" class="CodeMirror-search-field"/> <span style="color: #888" class="CodeMirror-search-hint"></span>';
+    let searchBox = createEl("div", { class: "CodeMirror-dialog CodeMirror-dialog-top" })
+    searchBox.appendChild(
+      createEl("span", {
+          class: "CodeMirror-search-label",
+          textContent: "Search:",
+      })
+    )
+    searchBox.appendChild(
+      createEl("input", {
+          type: "text",
+          class: "CodeMirror-search-field"
+      })
+    )
+    searchBox.appendChild(
+      createEl("span", {
+          class: "CodeMirror-search-hint",
+      })
+    )
 
-    let searchBox = document.createElement("div");
-    searchBox.className = "CodeMirror-dialog CodeMirror-dialog-top";
-    searchBox.innerHTML = searchDialog;
     this.searchContainer.insertBefore(searchBox, this.searchContainer.children[0]);
-
     let collection = searchBox.getElementsByTagName("input");
     collection[0].addEventListener("keyup", (e: KeyboardEvent) => {
       if (e.keyCode == 13) {
@@ -43,7 +57,6 @@ export class SearchCtx {
       this.resultOffset = 0;
     }
     this.isSearchActive = true;
-    console.log("nextsearch")
     this.mark.unmark();
     this.mark.mark(s, { separateWordSearch: false } );
     let elements = this.root.getElementsByTagName("mark");

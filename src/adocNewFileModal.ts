@@ -44,24 +44,25 @@ export class AdocNewFileModal extends Modal {
 
   async complete() {
     this.close();
-    const parent = (this.parent instanceof TFile ? this.parent.parent : this.parent) as TFolder;
-    const newPath = `${parent.path}/${this.fileName}.${this.ext}`;
-    const existingFile = this.app.vault.getAbstractFileByPath(normalizePath(newPath));
-    if (existingFile && existingFile instanceof TFile) {
-      new Notice("File already exists");
+    const parent = this.parent instanceof TFile ? this.parent.parent : this.parent;
+    if (parent instanceof TFolder) {
+      const newPath = `${parent.path}/${this.fileName}.${this.ext}`;
+      const existingFile = this.app.vault.getAbstractFileByPath(normalizePath(newPath));
+      if (existingFile && existingFile instanceof TFile) {
+        new Notice("File already exists");
+        const leaf = this.app.workspace.getLeaf(true);
+        leaf.openFile(existingFile as any);
+        return;
+      }
+      const newFile = await this.app.vault.create(
+        newPath,
+        "",
+        {}
+      );
+
       const leaf = this.app.workspace.getLeaf(true);
-      leaf.openFile(existingFile as any);
-      return;
+      leaf.openFile(newFile);
     }
-
-    const newFile = await this.app.vault.create(
-      newPath,
-      "",
-      {}
-    );
-
-    const leaf = this.app.workspace.getLeaf(true);
-    leaf.openFile(newFile);
   }
 
   onClose() {

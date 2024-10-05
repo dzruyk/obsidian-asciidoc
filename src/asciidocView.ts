@@ -1,15 +1,12 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TextFileView, TFile } from 'obsidian';
-import { ItemView, ViewStateResult, WorkspaceLeaf } from 'obsidian';
-import { Command, Component, editorInfoField, Hotkey, loadPrism, Modifier } from 'obsidian';
+import { App, Editor, PluginSettingTab, TextFileView, TFile } from 'obsidian';
+import { WorkspaceLeaf } from 'obsidian';
+import { Command, Hotkey, loadPrism, Modifier } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
-//import { StreamLanguage } from "@codemirror/language";
-import { tags } from "@lezer/highlight"
-import { HighlightStyle } from "@codemirror/language"
 import { openSearchPanel } from "@codemirror/search"
 
-import { StreamLanguage, syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+import { StreamLanguage, defaultHighlightStyle } from "@codemirror/language";
 import { EditorView, highlightActiveLine, lineNumbers } from "@codemirror/view";
 import { EditorState } from "@codemirror/state";
 
@@ -18,13 +15,14 @@ import { ViewPlugin, ViewUpdate, Decoration, DecorationSet } from "@codemirror/v
 import { Prec, RangeSetBuilder } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNodeRef, Tree } from "@lezer/common";
-import { Highlighter, highlightTree } from "@lezer/highlight";
+import { Highlighter } from "@lezer/highlight";
 
 
 import AsciidocPlugin from "./main"
 import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
+import { createEl } from "./util"
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -287,14 +285,22 @@ export class AsciidocView extends TextFileView {
   }
 
   renderViewerMode(parentEl: HTMLElement) {
-    let contents = this.editorView.state.doc.toString();
-    let htmlStr = this.adoc.convert(contents, this.viewerOptions);
+    const contents = this.editorView.state.doc.toString();
+    const htmlStr = this.adoc.convert(contents, this.viewerOptions);
 
-    let parser = new window.DOMParser();
+    const parser = new window.DOMParser();
 
-    let dataEl = document.createElement("div");
+    const dataEl = document.createElement("div");
 
-    dataEl.innerHTML = htmlStr;
+    //dataEl.innerHTML = htmlStr;
+    const parsedDoc = parser.parseFromString(htmlStr, "text/html")
+    if (parsedDoc.body && parsedDoc.body.childNodes.length > 0) {
+      let chldArr = parsedDoc.body.childNodes
+      for (let i = 0; i < chldArr.length; i++) {
+        dataEl.appendChild(chldArr[i])
+      }
+    }
+
     try {
       let collection : any = dataEl.getElementsByTagName("a");
 
@@ -306,9 +312,19 @@ export class AsciidocView extends TextFileView {
         if (isValidUrl(txt)) {
           cls = "cm-url";
         }
-        let s = `<span class="${cls}" spellcheck="false"><span class="cm-underline" draggable="true"> ${txt} </span></span>`;
+        const outerSpan = createEl("span", {
+          class: cls,
+          spellcheck: "false",
+        });
+        outerSpan.appendChild(
+          createEl("span", {
+            class: "cm-underline",
+            draggable: "true",
+            textContent: txt
+          })
+        )
         let div = document.createElement('div');
-        div.innerHTML = s;
+        div.appendChild(outerSpan)
         if (item.parentNode) {
           item.parentNode.replaceChild(div, item);
         }

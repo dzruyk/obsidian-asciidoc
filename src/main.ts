@@ -57,7 +57,7 @@ export default class AsciidocPlugin extends Plugin {
 
   onunload() {
     this.app.viewRegistry.unregisterExtensions([".adoc", ".asciidoc"]);
-    this.app.workspace.detachLeavesOfType(ASCIIDOC_EDITOR_VIEW);
+    //this.app.workspace.detachLeavesOfType(ASCIIDOC_EDITOR_VIEW);
   }
 
   async loadSettings() {
