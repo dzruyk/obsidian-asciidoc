@@ -1,6 +1,6 @@
 import { App, Editor, PluginSettingTab, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
-import { Command, Hotkey, loadPrism, Modifier } from 'obsidian';
+import { Command, loadPrism, setIcon } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
@@ -22,7 +22,7 @@ import AsciidocPlugin from "./main"
 import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
-import { createEl } from "./util"
+import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -33,7 +33,7 @@ function adoc() {return asciidoc; }
 CodeMirror.defineMode("asciidoc", adoc)
 CodeMirror.defineMIME("text/asciidoc", "asciidoc")
 
-loadPrism().then(x => { })
+loadPrism().then(_ => { })
 
 /*
  * 13 -- is magic number for node property
@@ -122,82 +122,6 @@ const treeHighlighterEx =Prec.high(ViewPlugin.fromClass(TreeHighlighterEx, {
     decorations: v => v.decorations
 }));
 
-
-type myCallback = () => void;
-
-class KeyInfo {
-  keyName: string
-  mask: number
-
-  constructor(keyName: string, isShift: boolean = false, isCtrl: boolean = false, isAlt: boolean = false) {
-    this.keyName = keyName;
-    //assume this is some keyboard key
-    if (this.keyName.length == 1)
-      this.keyName = "Key" + this.keyName.toUpperCase();
-    this.mask = this.modifiersToMask(isShift, isCtrl, isAlt);
-  }
-
-  modifiersToMask(isShift: boolean = false, isCtrl: boolean = false, isAlt: boolean = false): number {
-    let modifiers = 0;
-    if (isShift)
-      modifiers |= 1;
-    if (isCtrl)
-      modifiers |= 2;
-    if (isAlt)
-      modifiers |= 4;
-    return modifiers;
-  }
-
-  static fromHotkey(hk: Hotkey) {
-    let keyName = hk.key
-    let checkModifier = (modName: Modifier) => hk.modifiers.includes(modName)
-    return new KeyInfo(keyName, checkModifier("Shift"), checkModifier("Mod"), checkModifier("Alt"))
-  }
-
-  matchEventModifiers(event: KeyboardEvent): boolean {
-    let mask = this.modifiersToMask(event.shiftKey, event.ctrlKey, event.altKey);
-    if ((this.mask & mask) == this.mask)
-      return true
-    return false
-  }
-}
-
-class KeyboardCallbacks {
-  keyMap: Map<string, KeyInfo>;
-  callbacks: Map<string, myCallback>;
-
-  constructor() {
-    this.keyMap = new Map<string, KeyInfo>()
-    this.callbacks = new Map<string, myCallback>()
-  }
-
-  registerKey(ki: KeyInfo, callback: myCallback) {
-    this.keyMap.set(ki.keyName, ki);
-    this.callbacks.set(ki.keyName, callback);
-  }
-
-  registerObsidianHotkey(hk: Hotkey, defaultKey: KeyInfo, callback: myCallback) {
-    let ki;
-    if (hk) {
-      ki = KeyInfo.fromHotkey(hk);
-    } else {
-      ki = defaultKey;
-    }
-    this.registerKey(ki, callback);
-  }
-
-  handleKeyboardEvent(event: KeyboardEvent) {
-    let ki = this.keyMap.get(event.code);
-    if (!ki)
-      return;
-    if (ki.matchEventModifiers(event)) {
-      const cb = this.callbacks.get(ki.keyName)
-      if (cb)
-        cb();
-    }
-  }
-}
-
 function isValidUrl(str: string): boolean {
   let url;
   try {
@@ -219,29 +143,29 @@ export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
   private div: HTMLElement;
+  private actionElem: HTMLElement;
   private viewerOptions: any;
   private adoc: any;
   private sctx: SearchCtx;
 
   private editorView: EditorView;
   private keyMap: KeyboardCallbacks;
-
+  private isEditMode: boolean;
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
     this.plugin = plugin;
     this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
+    this.isEditMode = isEditMode; // initialize with global value
 
     // For viewer mode
     this.adoc = asciidoctor();
     this.viewerOptions = {
       standalone: false,
       safe: 'safe',
-      attributes: { 'showtitle': true, 'icons': 'font' }
+      attributes: { 'showtitle': true }
     };
     this.keyMap = new KeyboardCallbacks()
-
-    let tmp = document.createElement("div");
 
     let editorState = EditorState.create({
       extensions: [
@@ -263,11 +187,23 @@ export class AsciidocView extends TextFileView {
       //parent: this.contentEl,
     });
 
-    this.addAction("book-open", "preview/editor mode", (evt: MouseEvent ) => { this.changeViewMode() });
+    this.actionElem = this.addAction("book-open", "preview/editor mode", (_: MouseEvent ) => { this.changeViewMode() });
+    this.setModeIcon();
+  }
+
+  private setModeIcon() {
+    if (this.isEditMode) {
+      setIcon(this.actionElem, "book-open");
+      this.actionElem.setAttribute("aria-label", "Current view: editing\nclick to read")
+    } else {
+      setIcon(this.actionElem, "edit-3");
+      this.actionElem.setAttribute("aria-label", "Current view: reading\nclick to edit")
+    }
   }
 
   changeViewMode() {
-    isEditMode = !isEditMode;
+    isEditMode = this.isEditMode = !this.isEditMode
+    this.setModeIcon();
     this.renderCurrentMode();
   }
 
