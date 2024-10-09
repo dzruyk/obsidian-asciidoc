@@ -23,6 +23,7 @@ import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
+import { createEl } from "./util"
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -226,7 +227,7 @@ export class AsciidocView extends TextFileView {
 
     const parser = new window.DOMParser();
 
-    const dataEl = document.createElement("div");
+    const dataEl = createEl("div", {class: "markdown-preview-view markdown-rendered node-insert-event allow-fold-headings show-indentation-guide allow-fold-lists show-properties adoc-preview" })
 
     //dataEl.innerHTML = htmlStr;
     const parsedDoc = parser.parseFromString(htmlStr, "text/html")

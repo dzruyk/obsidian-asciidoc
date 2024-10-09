@@ -526,3 +526,70 @@ table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-eve
 	background:#f8f8f7
 }
 
+/*asciidoctor stuff */
+.adoc-preview .line-through{text-decoration:line-through}
+.adoc-preview .imageblock.left{margin:.25em .625em 1.25em 0}
+.adoc-preview .imageblock.right{margin:.25em 0 1.25em .625em}
+.adoc-preview .imageblock>.title{margin-bottom:0}
+.adoc-preview .imageblock.thumb,.imageblock.th{border-width:6px}
+.adoc-preview .imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.adoc-preview .image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.adoc-preview .image.left{margin-right:.625em}
+.adoc-preview .image.right{margin-left:.625em}
+.adoc-preview a.image{text-decoration:none;display:inline-block}
+.adoc-preview a.image object{pointer-events:none}
+.adoc-preview .big{font-size:larger}
+.adoc-preview .small{font-size:smaller}
+.adoc-preview .underline{text-decoration:underline}
+.adoc-preview .overline{text-decoration:overline}
+.adoc-preview .line-through{text-decoration:line-through}
+.adoc-preview .aqua{color:#00bfbf}
+.adoc-preview .aqua-background{background:#00fafa}
+.adoc-preview .black{color:#000}
+.adoc-preview .black-background{background:#000}
+.adoc-preview .blue{color:#0000bf}
+.adoc-preview .blue-background{background:#0000fa}
+.adoc-preview .fuchsia{color:#bf00bf}
+.adoc-preview .fuchsia-background{background:#fa00fa}
+.adoc-preview .gray{color:#606060}
+.adoc-preview .gray-background{background:#7d7d7d}
+.adoc-preview .green{color:#006000}
+.adoc-preview .green-background{background:#007d00}
+.adoc-preview .lime{color:#00bf00}
+.adoc-preview .lime-background{background:#00fa00}
+.adoc-preview .maroon{color:#600000}
+.adoc-preview .maroon-background{background:#7d0000}
+.adoc-preview .navy{color:#000060}
+.adoc-preview .navy-background{background:#00007d}
+.adoc-preview .olive{color:#606000}
+.adoc-preview .olive-background{background:#7d7d00}
+.adoc-preview .purple{color:#600060}
+.adoc-preview .purple-background{background:#7d007d}
+.adoc-preview .red{color:#bf0000}
+.adoc-preview .red-background{background:#fa0000}
+.adoc-preview .silver{color:#909090}
+.adoc-preview .silver-background{background:#bcbcbc}
+.adoc-preview .teal{color:#006060}
+.adoc-preview .teal-background{background:#007d7d}
+.adoc-preview .white{color:#bfbfbf}
+.adoc-preview .white-background{background:#fafafa}
+.adoc-preview .yellow{color:#bfbf00}
+.adoc-preview .yellow-background{background:#fafa00}
+.adoc-preview span.icon>.fa{cursor:default}
+.adoc-preview a span.icon>.fa{cursor:inherit}
+.adoc-preview .admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.adoc-preview .admonitionblock td.icon .icon-note::before{content:"\f05a";color:#19407c}
+.adoc-preview .admonitionblock td.icon .icon-tip::before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.adoc-preview .admonitionblock td.icon .icon-warning::before{content:"\f071";color:#bf6900}
+.adoc-preview .admonitionblock td.icon .icon-caution::before{content:"\f06d";color:#bf3400}
+.adoc-preview .admonitionblock td.icon .icon-important::before{content:"\f06a";color:#bf0000}
+.adoc-preview #content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+.adoc-preview pre{white-space:pre-wrap}
+.adoc-preview .highlight{background: #fafafa}
+.adoc-preview .paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
+.adoc-preview .admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.adoc-preview .admonitionblock>table td.icon{text-align:center;width:80px}
+.adoc-preview .admonitionblock>table td.icon img{max-width:none}
+.adoc-preview .admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.adoc-preview .admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
+.adoc-preview .admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
