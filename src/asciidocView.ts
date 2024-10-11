@@ -242,9 +242,9 @@ export class AsciidocView extends TextFileView {
       let collection : any = dataEl.getElementsByTagName("a");
 
       for (let item of collection) {
-        let txt = item.getText().trim();
+        let txt = item.getAttribute("href").trim();
         item.className = "internal-link"
-        if (isValidUrl(txt)) {
+        if (!txt.startsWith("app://") && isValidUrl(txt)) {
           item.className = "external-link"
         } else {
           item.onclick = () => {

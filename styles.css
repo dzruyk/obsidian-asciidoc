@@ -588,7 +588,6 @@ table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-eve
 .adoc-preview .paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
 .adoc-preview .callout>table{
   border-collapse:separate;
-  border:0;
   background:none;
   border: none;
   table-layout:fixed;
@@ -611,6 +610,7 @@ table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-eve
   line-height: 1;
   padding: 0;
   max-width:none;
+  border: none;
   transform: translate(-.5rem,-50%);
 }
 .adoc-preview .callout>table td.icon .title{
@@ -626,7 +626,6 @@ table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-eve
 .adoc-preview .callout>table td.content{
   padding-left:1.125em;
   padding-right:1.25em;
-  border-left:1px solid #dddddf;
   color:rgba(0,0,0,.6);
   word-wrap:anywhere;
   border: none;
