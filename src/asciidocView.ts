@@ -1,6 +1,6 @@
 import { App, Editor, PluginSettingTab, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
-import { Command, loadPrism, setIcon } from 'obsidian';
+import { loadPrism, setIcon } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
@@ -23,7 +23,7 @@ import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
-import { createEl } from "./util"
+import { createEl, patchAdmonitionBlock } from "./util"
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -302,6 +302,12 @@ export class AsciidocView extends TextFileView {
         if (file) {
           item.src = this.app.vault.getResourcePath(<TFile>file);
         }
+      }
+
+      // Try to mimic admotions for callouts
+      collection = dataEl.getElementsByClassName("admonitionblock");
+      while (collection.length > 0) {
+        patchAdmonitionBlock(collection[0]);
       }
     } catch (err) {
       console.log(err);

@@ -356,11 +356,10 @@ div.CodeMirror-dragcursors {
 span.CodeMirror-selectedtext { background: none; }
 
 .CodeMirror-search-label {
-	position: sticky;
-	top: 0;
-	background: white;
+  position: sticky;
+  top: 0;
+  background: white;
 }
-
 
 .cm-header-1 {
   font-size: 1.5rem;
@@ -475,55 +474,55 @@ body.is-mobile .markdown-source-view.mod-cm6 .cm-underline {
 
 /* Asciidoc viewer-mode tables. Borrowed from asciidoctor.css */
 p.tableblock:last-child {
-	margin-bottom:0
+    margin-bottom:0
 }
 
 td.tableblock>.content {
-	margin-bottom:1.25em;
-	word-wrap:anywhere
+    margin-bottom:1.25em;
+    word-wrap:anywhere
 }
 
 td.tableblock>.content>:last-child {
-	margin-bottom:-1.25em
+    margin-bottom:-1.25em
 }
 
 table.tableblock {
-	border-collapse: collapse;
+  border-collapse: collapse;
 }
 
 table.tableblock,th.tableblock,td.tableblock {
-	border:0 solid #dedede
+  border:0 solid #dedede
 }
 table.grid-all>*>tr>* {
-	border-width:1px
+  border-width:1px
 }
 table.grid-rows>*>tr>* {
-	border-width:1px 0
+  border-width:1px 0
 }
 
 table.frame-all {
-	border-width:1px
+  border-width:1px
 }
 table.frame-ends {
-	border-width:1px 0
+  border-width:1px 0
 }
 table.frame-sides {
-	border-width:0 1px
+  border-width:0 1px
 }
 table.frame-none>colgroup+*>:first-child>*,table.frame-sides>colgroup+*>:first-child>* {
-	border-top-width:0
+  border-top-width:0
 }
 table.frame-none>:last-child>:last-child>*,table.frame-sides>:last-child>:last-child>* {
-	border-bottom-width:0
+  border-bottom-width:0
 }
 table.frame-none>*>tr>:first-child,table.frame-ends>*>tr>:first-child {
-	border-left-width:0
+  border-left-width:0
 }
 table.frame-none>*>tr>:last-child,table.frame-ends>*>tr>:last-child {
-	border-right-width:0
+  border-right-width:0
 }
 table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-even>*>tr:nth-of-type(even),table.stripes-hover>*>tr:hover {
-	background:#f8f8f7
+  background:#f8f8f7
 }
 
 /*asciidoctor stuff */
@@ -587,9 +586,55 @@ table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-eve
 .adoc-preview pre{white-space:pre-wrap}
 .adoc-preview .highlight{background: #fafafa}
 .adoc-preview .paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
-.adoc-preview .admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
-.adoc-preview .admonitionblock>table td.icon{text-align:center;width:80px}
-.adoc-preview .admonitionblock>table td.icon img{max-width:none}
-.adoc-preview .admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
-.adoc-preview .admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
-.adoc-preview .admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.adoc-preview .callout>table{
+  border-collapse:separate;
+  border:0;
+  background:none;
+  border: none;
+  table-layout:fixed;
+}
+.adoc-preview .callout>table td.icon{
+  text-align:center;
+  width:8px;
+  border: none;
+  top: 0;
+  left: 0;
+  line-height: 1;
+  height: 2px;
+  min-width:0px;
+  /*position: absolute;*/
+}
+.adoc-preview .callout>table td.icon img{
+  position: absolute;
+  top: 0;
+  left: 0;
+  line-height: 1;
+  padding: 0;
+  max-width:none;
+  transform: translate(-.5rem,-50%);
+}
+.adoc-preview .callout>table td.icon .title{
+  font-weight:bold;
+  font-family:"Open Sans","DejaVu Sans",sans-serif;
+  text-transform: capitalize;
+  position: absolute;
+  transform: translate(-.1rem,-100%);
+  border: none;
+  font-size: var(--callout-title-size);
+  color: rgb(var(--callout-color));
+}
+.adoc-preview .callout>table td.content{
+  padding-left:1.125em;
+  padding-right:1.25em;
+  border-left:1px solid #dddddf;
+  color:rgba(0,0,0,.6);
+  word-wrap:anywhere;
+  border: none;
+  padding: 1rem 1rem .75rem;
+  white-space: normal;
+  width: 100%;
+}
+.adoc-preview .callout>table td.content>:last-child>:last-child{
+  margin-bottom:0;
+  border: none;
+}
