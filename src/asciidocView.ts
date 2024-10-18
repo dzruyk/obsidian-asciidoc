@@ -1,4 +1,4 @@
-import { App, Editor, PluginSettingTab, TextFileView, TFile } from 'obsidian';
+import { App, Menu, Notice, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
 import { loadPrism, setIcon } from 'obsidian';
 
@@ -244,13 +244,33 @@ export class AsciidocView extends TextFileView {
       for (let item of collection) {
         let txt = item.getAttribute("href").trim();
         item.className = "internal-link"
+
+        const menu = new Menu();
         if (!txt.startsWith("app://") && isValidUrl(txt)) {
           item.className = "external-link"
         } else {
           item.onclick = () => {
             this.app.workspace.openLinkText(txt, '', false);
           }
+          menu.addItem((item) =>
+            item
+            .setTitle('Open')
+            .onClick(() => this.app.workspace.openLinkText(txt, '', false))
+          )
         }
+        menu.addItem((item) =>
+           item
+           .setTitle('Copy URL')
+           .setIcon('documents')
+           .onClick(() => {
+             new Notice('Copied');
+             navigator.clipboard.writeText(txt);
+        }));
+
+        item.addEventListener("contextmenu",
+          (ev: MouseEvent) => menu.showAtMouseEvent(ev),
+          false
+        )
         item.setAttribute("rel", "noopener")
         item.setAttribute("target", "_blank")
       }
