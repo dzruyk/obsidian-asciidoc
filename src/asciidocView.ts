@@ -261,7 +261,7 @@ export class AsciidocView extends TextFileView {
           let className = item.children[0].className;
           if (className == "language-diagram") {
             // render drawio svg image (for processing asciidoc wiki.js pages)
-            let html = atob(item.children[0].innerText);
+            let html = Buffer.from(item.children[0].innerText, "base64").toString('utf8');
             //sanitize html contents for security reasons
             const parser = new DOMParser();
             let diagramDoc: any = parser.parseFromString(html, "application/xml");
