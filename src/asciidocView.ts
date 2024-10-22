@@ -23,12 +23,12 @@ import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
-import { createEl, patchAdmonitionBlock } from "./util"
+import { patchAdmonitionBlock } from "./util"
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
-declare var CodeMirror: any;
-declare var Prism: any;
+declare const CodeMirror: any;
+declare const Prism: any;
 
 function adoc() {return asciidoc; }
 CodeMirror.defineMode("asciidoc", adoc)
@@ -227,9 +227,9 @@ export class AsciidocView extends TextFileView {
 
     const parser = new window.DOMParser();
 
-    const dataEl = createEl("div", {class: "markdown-preview-view markdown-rendered node-insert-event allow-fold-headings show-indentation-guide allow-fold-lists show-properties adoc-preview" })
+    let root = document.createElement("div");
+    const dataEl = root.createEl("div", { cls : "markdown-preview-view markdown-rendered node-insert-event allow-fold-headings show-indentation-guide allow-fold-lists show-properties adoc-preview" });
 
-    //dataEl.innerHTML = htmlStr;
     const parsedDoc = parser.parseFromString(htmlStr, "text/html")
     if (parsedDoc.body && parsedDoc.body.childNodes.length > 0) {
       let chldArr = parsedDoc.body.childNodes
@@ -319,7 +319,7 @@ export class AsciidocView extends TextFileView {
         path = unescape(path);
         let file = this.app.vault.getAbstractFileByPath(path);
 
-        if (file) {
+        if (file instanceof TFile) {
           item.src = this.app.vault.getResourcePath(<TFile>file);
         }
       }
@@ -332,9 +332,6 @@ export class AsciidocView extends TextFileView {
     } catch (err) {
       console.log(err);
     }
-
-    let root = document.createElement("div");
-    root.appendChild(dataEl)
 
     this.sctx = new SearchCtx(dataEl, root);
     parentEl.replaceChildren(root);

@@ -1,5 +1,4 @@
 import Mark from 'mark.js'
-import { createEl } from "./util"
 
 export class SearchCtx {
   private isSearchActive: boolean;
@@ -21,24 +20,18 @@ export class SearchCtx {
   render() {
     this.isSearchActive = true;
 
-    let searchBox = createEl("div", { class: "CodeMirror-dialog CodeMirror-dialog-top" })
-    searchBox.appendChild(
-      createEl("span", {
-          class: "CodeMirror-search-label",
-          textContent: "Search:",
-      })
-    )
-    searchBox.appendChild(
-      createEl("input", {
+    let searchBox = createEl("div", { cls: "CodeMirror-dialog CodeMirror-dialog-top" })
+
+    searchBox.createEl("span", {
+          cls: "CodeMirror-search-label",
+          text: "Search:",
+    })
+    searchBox.createEl("input", {
           type: "text",
-          class: "CodeMirror-search-field"
-      })
-    )
-    searchBox.appendChild(
-      createEl("span", {
-          class: "CodeMirror-search-hint",
-      })
-    )
+          cls: "CodeMirror-search-field"
+    })
+
+    searchBox.createEl("span", { cls: "CodeMirror-search-hint" })
 
     this.searchContainer.insertBefore(searchBox, this.searchContainer.children[0]);
     let collection = searchBox.getElementsByTagName("input");
