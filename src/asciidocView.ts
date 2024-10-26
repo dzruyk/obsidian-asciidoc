@@ -320,7 +320,7 @@ export class AsciidocView extends TextFileView {
         let file = this.app.vault.getAbstractFileByPath(path);
 
         if (file instanceof TFile) {
-          item.src = this.app.vault.getResourcePath(<TFile>file);
+          item.src = this.app.vault.getResourcePath(file);
         }
       }
 
