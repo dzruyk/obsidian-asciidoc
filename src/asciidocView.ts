@@ -1,6 +1,6 @@
 import { App, Menu, Notice, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
-import { loadPrism, setIcon } from 'obsidian';
+import { loadPrism, loadMermaid, setIcon } from 'obsidian';
 
 import asciidoctor from 'asciidoctor'
 
@@ -29,12 +29,40 @@ export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
 declare const CodeMirror: any;
 declare const Prism: any;
+declare const mermaid: any;
 
 function adoc() {return asciidoc; }
 CodeMirror.defineMode("asciidoc", adoc)
 CodeMirror.defineMIME("text/asciidoc", "asciidoc")
 
 loadPrism().then(_ => { })
+loadMermaid().then(_ => { })
+
+async function mermaidDraw(htmlItem: HTMLElement) {
+  if (!htmlItem.lastChild)
+    return;
+  let firstChild = htmlItem.children[0];
+  if (!(firstChild instanceof HTMLElement)) {
+    return;
+  }
+
+  const txt = firstChild.innerText;
+  htmlItem.removeChild(htmlItem.lastChild);
+  let randId =  "Z" + Math.random().toString(36).substring(2, 16);
+  let tmp = await mermaid.render(randId, txt);
+  const parser = new DOMParser();
+  let diagramDoc: any = parser.parseFromString(tmp.svg, "application/xml");
+  let svg;
+  if (diagramDoc) {
+    for (let child of diagramDoc.childNodes) {
+      if (child.tagName != "svg")
+        continue;
+      svg = child;
+      break;
+    }
+  }
+  htmlItem.appendChild(svg);
+}
 
 /*
  * 13 -- is magic number for node property
@@ -301,7 +329,8 @@ export class AsciidocView extends TextFileView {
               }
               item.replaceChild(svg, item.lastChild);
             }
-
+          } else if (className.startsWith("language-mermaid")) {
+            mermaidDraw(item);
           } else if (className.startsWith("language-")) {
             item.className = className;
             Prism.highlightElement(item);
