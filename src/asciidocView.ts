@@ -277,8 +277,9 @@ export class AsciidocView extends TextFileView {
         if (!txt.startsWith("app://") && isValidUrl(txt)) {
           item.className = "external-link"
         } else {
-          item.onclick = () => {
+          item.onclick = (evt: Event) => {
             this.app.workspace.openLinkText(txt, '', false);
+            evt.preventDefault();
           }
           menu.addItem((item) =>
             item
