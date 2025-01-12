@@ -2,9 +2,9 @@ import { App, Menu, Notice, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
 import { loadPrism, loadMermaid, setIcon } from 'obsidian';
 
-import asciidoctor from 'asciidoctor'
-
-import { openSearchPanel } from "@codemirror/search"
+import asciidoctor from 'asciidoctor';
+import { AbstractBlock, Reader } from 'asciidoctor';
+import { openSearchPanel } from "@codemirror/search";
 
 import { StreamLanguage, defaultHighlightStyle } from "@codemirror/language";
 import { EditorView, highlightActiveLine, lineNumbers } from "@codemirror/view";
@@ -31,12 +31,11 @@ declare const CodeMirror: any;
 declare const Prism: any;
 declare const mermaid: any;
 
-function adoc() {return asciidoc; }
-CodeMirror.defineMode("asciidoc", adoc)
-CodeMirror.defineMIME("text/asciidoc", "asciidoc")
+CodeMirror.defineMode("asciidoc", asciidoc);
+CodeMirror.defineMIME("text/asciidoc", "asciidoc");
 
-loadPrism().then(_ => { })
-loadMermaid().then(_ => { })
+loadPrism().then(_ => { });
+loadMermaid().then(_ => { });
 
 async function mermaidDraw(htmlItem: HTMLElement) {
   if (!htmlItem.lastChild)
@@ -168,12 +167,23 @@ function deleteChildNodes(el: any) {
 
 let isEditMode = true;
 
+function mermaidBlockProcessor() {
+  this.block(function() {
+    const self = this
+    self.named('mermaid')
+    self.onContext(['listing'])
+    self.process(function (parent: AbstractBlock, reader: Reader) {
+      const diagramText = reader.read()
+      return this.createPassBlock(parent, `<pre class='highlight'><code class='language-mermaid'>${diagramText}</code></pre>`)
+    })
+  })
+}
+
 export class AsciidocView extends TextFileView {
   private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
   private div: HTMLElement;
   private actionElem: HTMLElement;
-  private viewerOptions: any;
   private adoc: any;
   private sctx: SearchCtx;
 
@@ -189,11 +199,9 @@ export class AsciidocView extends TextFileView {
 
     // For viewer mode
     this.adoc = asciidoctor();
-    this.viewerOptions = {
-      standalone: false,
-      safe: 'safe',
-      attributes: { 'showtitle': true }
-    };
+
+    this.adoc.Extensions.register(mermaidBlockProcessor);
+
     this.keyMap = new KeyboardCallbacks()
 
     let editorState = EditorState.create({
@@ -249,9 +257,19 @@ export class AsciidocView extends TextFileView {
     }
   }
 
+  getViewerOptions() {
+    let attributes : Record<string, any> = { 'showtitle': true };
+
+    return {
+      standalone: false,
+      safe: 'safe',
+      attributes: attributes
+    };
+  }
+
   renderViewerMode(parentEl: HTMLElement) {
     const contents = this.editorView.state.doc.toString();
-    const htmlStr = this.adoc.convert(contents, this.viewerOptions);
+    const htmlStr = this.adoc.convert(contents, this.getViewerOptions());
 
     const parser = new window.DOMParser();
 

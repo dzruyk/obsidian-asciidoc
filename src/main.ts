@@ -6,7 +6,7 @@ import { AsciidocView, ASCIIDOC_EDITOR_VIEW } from './asciidocView';
 export default class AsciidocPlugin extends Plugin {
   async onload() {
     this.registerExtensions(["adoc", "asciidoc"], ASCIIDOC_EDITOR_VIEW);
-    this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf))
+    this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf));
 
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu: Menu, file: TFile) => {

@@ -6,8 +6,14 @@ The plugin supports both view and edit modes, which can be switched using standa
 
 Global file search is not supported by Obsidian due to the limitations of the Obsidian API. But you can use the omnisearch plugin https://github.com/scambier/obsidian-omnisearch)
 
+> [!NOTE]
+> Plugin is not compatible with other asciidoctor plugins, i.e.:
+> * asciidoc-reader
+> * asciidoc-blocks
+>
+> If you are experiencing error `Failed to load plugin "asciidoctor-editor"` please try to disable plugins described above.
 
-## preview
+## Preview
 
 ![preview](./img/asciidoc.gif)
 
