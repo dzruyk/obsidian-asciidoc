@@ -25,6 +25,8 @@ import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
 import { patchAdmonitionBlock } from "./util"
 
+const kroki = require('asciidoctor-kroki');
+
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
 declare const CodeMirror: any;
@@ -190,12 +192,14 @@ export class AsciidocView extends TextFileView {
   private editorView: EditorView;
   private keyMap: KeyboardCallbacks;
   private isEditMode: boolean;
+  private isKrokiLoaded: boolean;
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
     this.plugin = plugin;
     this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
     this.isEditMode = isEditMode; // initialize with global value
+    this.isKrokiLoaded = false;
 
     // For viewer mode
     this.adoc = asciidoctor();
@@ -259,6 +263,16 @@ export class AsciidocView extends TextFileView {
 
   getViewerOptions() {
     let attributes : Record<string, any> = { 'showtitle': true };
+    if (this.plugin.settings.krokiEnabled) {
+      if (!this.isKrokiLoaded) {
+        kroki.register(this.adoc.Extensions);
+        // Overwrite mermaid kroki extension to process mermaid block with
+        // builtin module
+        this.adoc.Extensions.register(mermaidBlockProcessor);
+        this.isKrokiLoaded = true;
+      }
+      attributes['kroki-server-url'] = this.plugin.settings.krokiUrl;
+    }
 
     return {
       standalone: false,

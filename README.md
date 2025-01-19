@@ -13,6 +13,11 @@ Global file search is not supported by Obsidian due to the limitations of the Ob
 >
 > If you are experiencing error `Failed to load plugin "asciidoctor-editor"` please try to disable plugins described above.
 
+## Features
+
+* Diagrams support (mermaid and [kroki](https://kroki.io/) (optional, disabled by default))
+
+
 ## Preview
 
 ![preview](./img/asciidoc.gif)
