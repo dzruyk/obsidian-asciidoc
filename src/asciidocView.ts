@@ -258,7 +258,10 @@ export class AsciidocView extends TextFileView {
   }
 
   getViewerOptions() {
-    let attributes : Record<string, any> = { 'showtitle': true };
+    let attributes : Record<string, any> = {
+      'showtitle': true,
+      'outfilesuffix': '.adoc',
+    };
 
     return {
       standalone: false,
