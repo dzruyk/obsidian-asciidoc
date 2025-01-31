@@ -17,6 +17,7 @@ import { syntaxTree } from "@codemirror/language";
 import { SyntaxNodeRef, Tree } from "@lezer/common";
 import { Highlighter } from "@lezer/highlight";
 
+import { tokenClassNodeProp } from "@codemirror/stream-parser";
 
 import AsciidocPlugin from "./main"
 import { basicExtensions } from "./codemirror";
@@ -24,6 +25,7 @@ import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
 import { patchAdmonitionBlock } from "./util"
+
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -63,16 +65,8 @@ async function mermaidDraw(htmlItem: HTMLElement) {
   htmlItem.appendChild(svg);
 }
 
-/*
- * 13 -- is magic number for node property
- * that stores highlight type info.
- * Codemirror allows you to add additional info to nodes using class `NodeProp`.
- * Every new `NodeProp` reserves its own index.
- * Codemirror defines several public NodeProp, for example
- * NodeProp.lookAhead, NodeProp.mounted
- * But obisidian defines it's own properties and it's part of private API that we can't acces, so we use this magic number and hope its works stable enough.
-*/
-const tokenInfoPropId: number = 13;
+
+const tokenInfoPropId: number = tokenClassNodeProp.id;
 
 function getHighlighters(state:any) {
   return [defaultHighlightStyle];
