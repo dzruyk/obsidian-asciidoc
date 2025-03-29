@@ -334,13 +334,54 @@ div.CodeMirror-dragcursors {
 .CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection { background: #d7d4f0; }
 .CodeMirror-line::-moz-selection, .CodeMirror-line > span::-moz-selection, .CodeMirror-line > span > span::-moz-selection { background: #d7d4f0; }
 
-.cm-searching {
+
+.adoc-view.is-readable-line-width .cm-content {
+  max-width: var(--file-line-width);
+}
+.adoc-view.is-readable-line-width .cm-line {
+  max-width: var(--file-line-width);
+}
+.adoc-view .cm-scroller {
+  font-family: var(--font-text);
+  line-height: var(--line-height-normal);
+  scroll-padding-block-end: var(--status-bar-scroll-padding);
+  scrollbar-gutter: stable;
+}
+.adoc-view span.cm-builtin {
+  font-family: var(--font-monospace);
+  color: var(--code-normal);
+  font-size: var(--code-size);
+  background-color: var(--code-background);
+  vertical-align: baseline;
+  -webkit-box-decoration-break: clone;
+}
+
+.adoc-view .cm-builtin {
+  font-family: var(--font-monospace);
+  border-color: var(--code-border-color);
+  border-style: solid;
+}
+
+.adoc-view .cm-contentContainer {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
+  overflow-x: visible;
+}
+.adoc-view .cm-content {
+  flex-basis: unset !important;
+  width: 0;
+  caret-color: var(--caret-color);
+  min-height: unset;
+  padding: 0;
+}
+.adoc-view .cm-searching {
   background-color: #ffa;
   background-color: rgba(255, 255, 0, .4);
 }
 
 /* Used to force a border model for a node */
-.cm-force-border { padding-right: .1px; }
+.adoc-view .cm-force-border { padding-right: .1px; }
 
 @media print {
   /* Hide the cursor when printing */
@@ -350,7 +391,7 @@ div.CodeMirror-dragcursors {
 }
 
 /* See issue #2901 */
-.cm-tab-wrap-hack:after { content: ''; }
+.adoc-view .cm-tab-wrap-hack:after { content: ''; }
 
 /* Help users use markselection to safely style text background */
 span.CodeMirror-selectedtext { background: none; }
@@ -361,26 +402,28 @@ span.CodeMirror-selectedtext { background: none; }
   background: white;
 }
 
-.cm-header-1 {
+.adoc-view .cm-header-1 {
   font-size: 1.5rem;
 }
-.cm-header-2 {
+.adoc-view .cm-header-2 {
   font-size: 1.25rem;
 }
-.cm-header-3 {
+.adoc-view .cm-header-3 {
   font-size: 1.15rem;
 }
-.cm-header-4 {
+.adoc-view .cm-header-4 {
   font-size: 1.1rem;
 }
-.cm-header-5 {
+.adoc-view .cm-header-5 {
   font-size: 1.05rem;
 }
-.cm-header-6 {
+.adoc-view .cm-header-6 {
   font-size: 1.025rem;
 }
 
 .adoc-view {
+  font-size: var(--font-text-size);
+  font-family: var(--font-text);
   user-select: auto;
   height: 100%;
   display: flex;
@@ -415,23 +458,10 @@ span.CodeMirror-selectedtext { background: none; }
   color: var(--link-external-color);
   word-break: break-word;
 }
-
-.markdown-source-view.mod-cm6 .is-unresolved .cm-underline {
-  text-decoration-line: var(--link-decoration);
-  text-decoration-style: var(--link-unresolved-decoration-style);
-  text-decoration-color: var(--link-unresolved-decoration-color);
-}
-.markdown-source-view.mod-cm6 .cm-underline {
-  text-decoration-line: var(--link-decoration);
-  text-decoration-thickness: var(--link-decoration-thickness);
-}
-body.is-mobile .markdown-source-view.mod-cm6 .cm-underline {
-  -webkit-user-select: text;
-}
-.markdown-source-view.mod-cm6.is-live-preview .cm-hashtag.cm-meta,
-.markdown-source-view.mod-cm6 .cm-hmd-internal-link .cm-underline,
-.markdown-source-view.mod-cm6 .cm-link .cm-underline,
-.markdown-source-view.mod-cm6 .cm-url .cm-underline {
+.adoc-view.is-live-preview .cm-hashtag.cm-meta,
+.adoc-view .cm-hmd-internal-link .cm-underline,
+.adoc-view .cm-link .cm-underline,
+.adoc-view .cm-url .cm-underline {
   cursor: var(--cursor-link);
 }
 
