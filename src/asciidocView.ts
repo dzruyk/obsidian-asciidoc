@@ -1,6 +1,6 @@
 import { App, Menu, Notice, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
-import { loadPrism, loadMermaid, setIcon } from 'obsidian';
+import { loadPrism, loadMermaid, setIcon, normalizePath } from 'obsidian';
 
 import asciidoctor from 'asciidoctor';
 import { AbstractBlock, Reader } from 'asciidoctor';
@@ -24,8 +24,7 @@ import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
-import { patchAdmonitionBlock } from "./util"
-
+import { isValidUrl, isRelativePath, myRealpath, patchAdmonitionBlock } from "./util";
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -144,15 +143,6 @@ const treeHighlighterEx =Prec.high(ViewPlugin.fromClass(TreeHighlighterEx, {
     decorations: v => v.decorations
 }));
 
-function isValidUrl(str: string): boolean {
-  let url;
-  try {
-    url = new URL(str);
-  } catch (_) {
-    return false;
-  }
-  return true
-}
 
 function deleteChildNodes(el: any) {
     while (el.hasChildNodes())
@@ -285,21 +275,22 @@ export class AsciidocView extends TextFileView {
       let collection : any = dataEl.getElementsByTagName("a");
 
       for (let item of collection) {
-        let txt = item.getAttribute("href").trim();
+        let path = item.getAttribute("href").trim();
         item.className = "internal-link"
 
         const menu = new Menu();
-        if (!txt.startsWith("app://") && isValidUrl(txt)) {
+        if (!path.startsWith("app://") && isValidUrl(path)) {
           item.className = "external-link"
         } else {
+          path = this.canonicalizePath(path);
           item.onclick = (evt: Event) => {
-            this.app.workspace.openLinkText(txt, '', false);
+            this.app.workspace.openLinkText(path, '', false);
             evt.preventDefault();
           }
           menu.addItem((item) =>
             item
             .setTitle('Open')
-            .onClick(() => this.app.workspace.openLinkText(txt, '', false))
+            .onClick(() => this.app.workspace.openLinkText(path, '', false))
           )
         }
         menu.addItem((item) =>
@@ -308,7 +299,7 @@ export class AsciidocView extends TextFileView {
            .setIcon('documents')
            .onClick(() => {
              new Notice('Copied');
-             navigator.clipboard.writeText(txt);
+             navigator.clipboard.writeText(path);
         }));
 
         item.addEventListener("contextmenu",
@@ -356,14 +347,12 @@ export class AsciidocView extends TextFileView {
 
       collection = dataEl.getElementsByTagName("img");
       for (let item of collection) {
-        let path = item.src
-        let commonPrefix = "app://obsidian.md/"
-        if (path.startsWith(commonPrefix)) {
-          path = path.substr(commonPrefix.length)
+        let path = item.attributes.src.value;
+        if (isValidUrl(path)) {
+          continue;
         }
-        path = unescape(path);
-        let file = this.app.vault.getAbstractFileByPath(path);
-
+        path = this.canonicalizePath(path);
+        let file = app.metadataCache.getFirstLinkpathDest(path, "");
         if (file instanceof TFile) {
           item.src = this.app.vault.getResourcePath(file);
         }
@@ -492,6 +481,22 @@ export class AsciidocView extends TextFileView {
     if (isEditMode)
       return;
     this.sctx.resetSearch();
+  }
+
+  canonicalizePath(path: string): string {
+    if (isValidUrl(path))
+      return path;
+
+    path = normalizePath(path);
+    if (isRelativePath(path)) {
+      const currentFile = this.app.workspace.getActiveFile();
+      if (currentFile instanceof TFile) {
+        const tmp = currentFile.path;
+        const currentDir = tmp.substr(0, tmp.lastIndexOf('/'));
+        path = myRealpath(`${currentDir}/${path}`);
+      }
+    }
+    return path;
   }
 }
 

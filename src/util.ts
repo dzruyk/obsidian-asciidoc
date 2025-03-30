@@ -8,8 +8,23 @@ const admotionIcons: Map<string, string> = new Map([
   ["warning", "alert-triangle"]
 ]);
 
-export function patchAdmonitionBlock(item: HTMLElement)
-{
+export function isRelativePath(path: string): boolean {
+  if (path.startsWith("./") || path.startsWith("../"))
+    return true;
+  return false;
+}
+
+export function isValidUrl(str: string): boolean {
+  let url;
+  try {
+    url = new URL(str);
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+
+export function patchAdmonitionBlock(item: HTMLElement) {
   let abType = item.className.replace("admonitionblock ", "");
   if (adocSpecificTypes.includes(abType)) {
     abType = "danger";
@@ -26,8 +41,28 @@ export function patchAdmonitionBlock(item: HTMLElement)
   const calloutIcon = calloutTitle.createEl("div", {cls: "callout-icon" });
   setIcon(calloutIcon, iconName);
   if (iconElement.length > 0 && iconElement[0]) {
-    calloutTitle.appendChild(iconElement[0])
+    calloutTitle.appendChild(iconElement[0]);
     item.insertBefore(calloutTitle, item.firstChild);
   }
+}
+
+export function myRealpath(path: string): string {
+    path = path.trim();
+    const segments = path.split('/');
+    const stack = [];
+
+    for (const segment of segments) {
+        if (segment === '' || segment === '.') {
+            continue;
+        } else if (segment === '..') {
+            if (stack.length > 0) {
+                stack.pop();
+            }
+        } else {
+            stack.push(segment);
+        }
+    }
+    const canonicalPath = stack.join('/');
+    return canonicalPath;
 }
 
