@@ -24,7 +24,9 @@ import { basicExtensions } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
-import { isValidUrl, isRelativePath, myRealpath, patchAdmonitionBlock } from "./util";
+import { isValidUrl, isRelativePath, myRealpath,
+  patchAdmonitionBlock } from "./util";
+
 
 export const ASCIIDOC_EDITOR_VIEW = "asciidoc-editor-view";
 
@@ -164,7 +166,6 @@ function mermaidBlockProcessor() {
 }
 
 export class AsciidocView extends TextFileView {
-  private pageData: string; //TODO: for view-only mode
   private plugin: AsciidocPlugin;
   private div: HTMLElement;
   private actionElem: HTMLElement;
@@ -186,7 +187,7 @@ export class AsciidocView extends TextFileView {
 
     this.adoc.Extensions.register(mermaidBlockProcessor);
 
-    this.keyMap = new KeyboardCallbacks()
+    this.keyMap = new KeyboardCallbacks();
 
     let editorState = EditorState.create({
       extensions: [
@@ -195,11 +196,11 @@ export class AsciidocView extends TextFileView {
         treeHighlighterEx,
         highlightActiveLine(),
         StreamLanguage.define(asciidoc),
-        // TODO: Figure out how to nicely set language modes.
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) {
-            this.save(false);
+          if (!update.docChanged) {
+            return;
           }
+          this.save(false);
         }),
       ],
     });
@@ -222,13 +223,13 @@ export class AsciidocView extends TextFileView {
     }
   }
 
-  changeViewMode() {
+  private changeViewMode() {
     isEditMode = this.isEditMode = !this.isEditMode
     this.setModeIcon();
     this.renderCurrentMode();
   }
 
-  renderCurrentMode() {
+  private renderCurrentMode() {
     if (!this.div) {
       console.log("No target div, SHOULD NOT REACH");
       return;
@@ -241,7 +242,7 @@ export class AsciidocView extends TextFileView {
     }
   }
 
-  getViewerOptions() {
+  private getViewerOptions() {
     let attributes : Record<string, any> = {
       'showtitle': true,
       'outfilesuffix': '.adoc',
@@ -254,7 +255,7 @@ export class AsciidocView extends TextFileView {
     };
   }
 
-  renderViewerMode(parentEl: HTMLElement) {
+  private renderViewerMode(parentEl: HTMLElement) {
     const contents = this.editorView.state.doc.toString();
     const htmlStr = this.adoc.convert(contents, this.getViewerOptions());
 
@@ -408,7 +409,6 @@ export class AsciidocView extends TextFileView {
   }
 
   setViewData = (data: string, clear: boolean) => {
-    this.pageData = data;
     this.editorView.dispatch({
       changes: {
         from: 0,

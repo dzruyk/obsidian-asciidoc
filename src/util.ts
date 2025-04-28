@@ -66,3 +66,54 @@ export function myRealpath(path: string): string {
     return canonicalPath;
 }
 
+const asciidocLinksRex = new RegExp("(link|xref|image):([^\\[]+)\\[([^\\]]*)\\]", "gi");
+
+export class PagePosition {
+  line: number;
+  col: number;
+  offset: number;
+  constructor(line: number, col: number, offset: number) {
+    this.line = line;
+    this.col = col;
+    this.offset = offset;
+  }
+}
+
+export class DocRef {
+  displayText: string;
+  link: string;
+  original: string;
+  position: any;
+
+  constructor(displayText: string, link: string, original: string, pos: PagePosition) {
+    this.displayText = displayText;
+    this.link = link;
+    this.original = original;
+    this.position = {
+      start: pos,
+      stop: new PagePosition(pos.line, pos.col + original.length, pos.offset + original.length)
+    };
+  }
+}
+
+export function adocFindDocumentRefs(doc: string): DocRef[] {
+    let res: DocRef[] = [];
+    let nline = 0;
+    let off = 0;
+
+    doc.split("\n").forEach((ln) => {
+      nline += 1;
+      let m: RegExpExecArray | null;
+      while ((m = asciidocLinksRex.exec(ln)) !== null) {
+        const url = m[2];
+        const displayText = m[3];
+        if (isValidUrl(url))
+          continue; // skip non local references
+        res.push(
+          new DocRef(displayText, url, m[0],
+            new PagePosition(nline, m.index, m.index + off)));
+      }
+      off += ln.length;
+    });
+    return res;
+}
