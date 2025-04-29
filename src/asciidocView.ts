@@ -211,6 +211,11 @@ export class AsciidocView extends TextFileView {
 
     this.actionElem = this.addAction("book-open", "preview/editor mode", (_: MouseEvent ) => { this.changeViewMode() });
     this.setModeIcon();
+    this.app.workspace.on("window-open", (win, window) => {
+      setTimeout(() => {
+        this.editorView.setRoot(this.contentEl.getRootNode());
+      }, 200);
+    });
   }
 
   private setModeIcon() {
@@ -237,6 +242,7 @@ export class AsciidocView extends TextFileView {
 
     if (isEditMode) {
       this.div.replaceChildren(this.editorView.dom);
+      this.editorView.setRoot(this.contentEl.getRootNode());
     } else {
       this.renderViewerMode(this.div);
     }
