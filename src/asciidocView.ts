@@ -213,7 +213,7 @@ export class AsciidocView extends TextFileView {
     this.setModeIcon();
     this.app.workspace.on("window-open", (win, window) => {
       setTimeout(() => {
-        this.editorView.setRoot(this.contentEl.getRootNode());
+        this.editorView.setRoot(this.contentEl.getRootNode() as Document);
       }, 200);
     });
   }
@@ -242,7 +242,7 @@ export class AsciidocView extends TextFileView {
 
     if (isEditMode) {
       this.div.replaceChildren(this.editorView.dom);
-      this.editorView.setRoot(this.contentEl.getRootNode());
+      this.editorView.setRoot(this.contentEl.getRootNode() as Document);
     } else {
       this.renderViewerMode(this.div);
     }

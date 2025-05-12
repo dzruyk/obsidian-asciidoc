@@ -1,9 +1,9 @@
-import { App, Plugin, TFile, TFolder, TAbstractFile, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
+import { App, Plugin, TFile, TFolder, PluginSettingTab, Setting, Menu, MenuItem } from 'obsidian';
 
 import { AdocNewFileModal } from './adocNewFileModal';
 import { AsciidocView, ASCIIDOC_EDITOR_VIEW } from './asciidocView';
 import { around } from 'monkey-around';
-import { adocFindDocumentRefs, myRealpath, DocRef } from "./util";
+import { adocFindDocumentRefs, fileRecurseChildrenCb, myRealpath, DocRef } from "./util";
 
 let adocExtensions = ["adoc", "asciidoc"];
 
@@ -33,20 +33,6 @@ class MetadataCacheEntry {
   }
 }
 
-type ChildPassFunction = (e?: TAbstractFile) => void;
-
-function recurseChildren (e: TAbstractFile, t: ChildPassFunction) {
-  let n: TAbstractFile[] = [];
-  for (n = [e]; n.length > 0; ) {
-    var i = n.pop();
-    if (i && (t(i),
-        i instanceof TFolder)) {
-      const tmp = i as TFolder;
-      let r: TAbstractFile[] = tmp.children;
-      n = n.concat(r)
-    }
-  }
-}
 
 export default class AsciidocPlugin extends Plugin {
   hooksUnregLst: any[];
@@ -85,7 +71,7 @@ export default class AsciidocPlugin extends Plugin {
     let uninstaller = around(metadataCache, {
       computeFileMetadataAsync(oldMethod: any) {
         return async function (...args : any[]) {
-          console.log("intercept computeFileMetadataAsync");
+          //console.log("intercept computeFileMetadataAsync");
           let argTgtFile: TFile|null = args[0];
           const orig = () => {
             return oldMethod && oldMethod.apply(this, args);
@@ -108,8 +94,8 @@ export default class AsciidocPlugin extends Plugin {
           if (currentCacheEntry !== undefined && currentCacheEntry.hash != '') {
             if (hash == currentCacheEntry.hash)
               return;
-            console.log(currentCacheEntry);
-            console.log(metadataCache.metadataCache[currentCacheEntry.hash]);
+            //console.log(currentCacheEntry);
+            //console.log(metadataCache.metadataCache[currentCacheEntry.hash]);
             if (metadataCache.metadataCache[currentCacheEntry.hash] !== undefined)
               ver = metadataCache.metadataCache[currentCacheEntry.hash].v;
           }
@@ -124,7 +110,7 @@ export default class AsciidocPlugin extends Plugin {
             metadataCache.resolvedLinks[argTgtFile!.path][path] = 1;
           });
           metadataCache.unresolvedLinks[argTgtFile.path] = {'link.md' : 1}
-          console.log("REFS!", refs);
+          //console.log("REFS!", refs);
           metadataCache.trigger("resolve", argTgtFile);
           //metadataCache.trigger("changed", argTgtFile, s, metadataCache.metadataCache[hash]);
         }
@@ -142,7 +128,7 @@ export default class AsciidocPlugin extends Plugin {
           console.log("GetMarkdownFiles")
           let n: TFolder = vault.getRoot();
           let e: TFile[] = [];
-          recurseChildren(n, (t) => {
+          fileRecurseChildrenCb(n, (t) => {
             if (t instanceof TFile && ["adoc", "asciidoc", "md"].includes(t.extension))
               e.push(t);
           });

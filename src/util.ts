@@ -1,4 +1,5 @@
 import { setIcon } from 'obsidian';
+import { TFolder, TAbstractFile } from 'obsidian';
 
 const adocSpecificTypes = ["important", "caution"];
 const admotionIcons: Map<string, string> = new Map([
@@ -97,23 +98,47 @@ export class DocRef {
 }
 
 export function adocFindDocumentRefs(doc: string): DocRef[] {
-    let res: DocRef[] = [];
-    let nline = 0;
-    let off = 0;
+  let res: DocRef[] = [];
+  let nline = 0;
+  let off = 0;
 
-    doc.split("\n").forEach((ln) => {
-      nline += 1;
-      let m: RegExpExecArray | null;
-      while ((m = asciidocLinksRex.exec(ln)) !== null) {
-        const url = m[2];
-        const displayText = m[3];
-        if (isValidUrl(url))
-          continue; // skip non local references
-        res.push(
-          new DocRef(displayText, url, m[0],
-            new PagePosition(nline, m.index, m.index + off)));
-      }
-      off += ln.length;
-    });
-    return res;
+  doc.split("\n").forEach((ln) => {
+    nline += 1;
+    let m: RegExpExecArray | null;
+    while ((m = asciidocLinksRex.exec(ln)) !== null) {
+      const url = m[2];
+      const displayText = m[3];
+      if (isValidUrl(url))
+        continue; // skip non local references
+      res.push(
+        new DocRef(displayText, url, m[0],
+          new PagePosition(nline, m.index, m.index + off)));
+    }
+    off += ln.length;
+  });
+  return res;
 }
+
+export async function hashString(doc: string, hashName?: string): Promise<string> {
+  if (hashName === undefined)
+    hashName = "SHA-256"
+  const buf = new TextEncoder().encode(doc);
+  const binhash = await crypto.subtle.digest(hashName, buf);
+  return Buffer.from(binhash).toString('hex');
+}
+
+export type ChildPassFunction = (e?: TAbstractFile) => void;
+
+export function fileRecurseChildrenCb (e: TAbstractFile, t: ChildPassFunction) {
+  let n: TAbstractFile[] = [];
+  for (n = [e]; n.length > 0; ) {
+    var i = n.pop();
+    if (i && (t(i),
+        i instanceof TFolder)) {
+      const tmp = i as TFolder;
+      let r: TAbstractFile[] = tmp.children;
+      n = n.concat(r)
+    }
+  }
+}
+
