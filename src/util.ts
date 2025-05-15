@@ -129,7 +129,7 @@ export async function hashString(doc: string, hashName?: string): Promise<string
 
 export type ChildPassFunction = (e?: TAbstractFile) => void;
 
-export function fileRecurseChildrenCb (e: TAbstractFile, t: ChildPassFunction) {
+export function filesRecursePassCb (e: TAbstractFile, t: ChildPassFunction) {
   let n: TAbstractFile[] = [];
   for (n = [e]; n.length > 0; ) {
     var i = n.pop();

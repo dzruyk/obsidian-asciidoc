@@ -1,4 +1,4 @@
-import { App, Menu, Notice, TextFileView, TFile } from 'obsidian';
+import {  Menu, Notice, TextFileView, TFile } from 'obsidian';
 import { WorkspaceLeaf } from 'obsidian';
 import { loadPrism, loadMermaid, setIcon, normalizePath } from 'obsidian';
 
@@ -211,6 +211,8 @@ export class AsciidocView extends TextFileView {
 
     this.actionElem = this.addAction("book-open", "preview/editor mode", (_: MouseEvent ) => { this.changeViewMode() });
     this.setModeIcon();
+
+    // this code triggers codemirror styles load into separate obsidian window
     this.app.workspace.on("window-open", (win, window) => {
       setTimeout(() => {
         this.editorView.setRoot(this.contentEl.getRootNode() as Document);

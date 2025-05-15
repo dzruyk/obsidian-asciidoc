@@ -3,7 +3,7 @@ import { App, Plugin, TFile, TFolder, PluginSettingTab, Setting, Menu, MenuItem 
 import { AdocNewFileModal } from './adocNewFileModal';
 import { AsciidocView, ASCIIDOC_EDITOR_VIEW } from './asciidocView';
 import { around } from 'monkey-around';
-import { adocFindDocumentRefs, fileRecurseChildrenCb, myRealpath, DocRef } from "./util";
+import { adocFindDocumentRefs, filesRecursePassCb, myRealpath, DocRef } from "./util";
 
 let adocExtensions = ["adoc", "asciidoc"];
 
@@ -33,12 +33,22 @@ class MetadataCacheEntry {
   }
 }
 
+interface AsciidocPluginSettings {
+  experimentalMetadataCacheHook: boolean;
+}
+
+const DEFAULT_SETTINGS: AsciidocPluginSettings = {
+  experimentalMetadataCacheHook: false
+}
 
 export default class AsciidocPlugin extends Plugin {
+  settings: AsciidocPluginSettings;
   hooksUnregLst: any[];
   
   async onload() {
     this.hooksUnregLst = []
+    await this.loadSettings();
+    this.addSettingTab(new AsciidocPluginSettingTab(this.app, this));
 
     this.registerExtensions(adocExtensions, ASCIIDOC_EDITOR_VIEW);
     this.registerView(ASCIIDOC_EDITOR_VIEW, (leaf) => new AsciidocView(this, leaf));
@@ -66,6 +76,14 @@ export default class AsciidocPlugin extends Plugin {
           new AdocNewFileModal(this).open();
       }
     });
+    if (this.settings.experimentalMetadataCacheHook) {
+      this.applyExperimentalHooks();
+    }
+  }
+
+  // still requires reload!
+  applyExperimentalHooks() {
+    // Lets hook metadataCache
     let plugin = this;
     let metadataCache: any = this.app.metadataCache
     let uninstaller = around(metadataCache, {
@@ -81,7 +99,7 @@ export default class AsciidocPlugin extends Plugin {
 
           let s = await plugin.app.vault.cachedRead(argTgtFile);
           const refs = adocFindDocumentRefs(s);
-          console.log(`refs = ${refs}`);
+          //console.log(`refs = ${refs}`);
           if (refs.length < 1)
             return;
 
@@ -117,39 +135,58 @@ export default class AsciidocPlugin extends Plugin {
       }
     });
     this.hooksUnregLst.push(uninstaller);
-
-    let vault: any = this.app.vault;
-    uninstaller = around(vault, {
-      getMarkdownFiles(oldMethod: any) {
-        return function (...args : any[]) {
-          const orig = () => {
-            return oldMethod && oldMethod.apply(this, args);
-          }
-          console.log("GetMarkdownFiles")
-          let n: TFolder = vault.getRoot();
-          let e: TFile[] = [];
-          fileRecurseChildrenCb(n, (t) => {
-            if (t instanceof TFile && ["adoc", "asciidoc", "md"].includes(t.extension))
-              e.push(t);
-          });
-          return e;
-        }
-      }
-    });
-
   }
-
-  onunload() {
+  unregHooks() {
     this.hooksUnregLst.forEach((v) => {
       v();
-
     });
     this.hooksUnregLst = [];
   }
 
+  onunload() {
+    //this.unregHooks();
+  }
+
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
 
   public updateEditorExtensions() {
     this.app.workspace.updateOptions();
+  }
+}
+
+class AsciidocPluginSettingTab extends PluginSettingTab {
+  plugin: AsciidocPlugin;
+  constructor(app: App, plugin: AsciidocPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display(): void {
+    const {containerEl} = this;
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("Enable experimental features")
+      .setDesc("Integrate asciidoc with links/backlinks/graph (still WIP). Requires app reload")
+      .addToggle(c => c
+        .setValue(this.plugin.settings.experimentalMetadataCacheHook)
+        .onChange(async (value) => {
+          this.plugin.settings.experimentalMetadataCacheHook = value;
+          await this.plugin.saveSettings();
+          if (value) {
+            this.plugin.applyExperimentalHooks();
+            let metadataCache: any = this.app.metadataCache
+            metadataCache.clear();
+          } else {
+            this.plugin.unregHooks();
+          }
+        })
+      )
   }
 }
 
