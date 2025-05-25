@@ -496,7 +496,12 @@ export class AsciidocView extends TextFileView {
       return path;
 
     path = normalizePath(path);
-    if (isRelativePath(path)) {
+    if (path.startsWith("#")) {
+      const currentFile = this.app.workspace.getActiveFile();
+      if (currentFile instanceof TFile) {
+        return `${currentFile.path}${path}`;
+      }
+    } else if (isRelativePath(path)) {
       const currentFile = this.app.workspace.getActiveFile();
       if (currentFile instanceof TFile) {
         const tmp = currentFile.path;
