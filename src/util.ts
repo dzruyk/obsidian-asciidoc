@@ -92,7 +92,7 @@ export class DocRef {
     this.original = original;
     this.position = {
       start: pos,
-      stop: new PagePosition(pos.line, pos.col + original.length, pos.offset + original.length)
+      end: new PagePosition(pos.line, pos.col + original.length, pos.offset + original.length)
     };
   }
 }
@@ -103,7 +103,6 @@ export function adocFindDocumentRefs(doc: string): DocRef[] {
   let off = 0;
 
   doc.split("\n").forEach((ln) => {
-    nline += 1;
     let m: RegExpExecArray | null;
     while ((m = asciidocLinksRex.exec(ln)) !== null) {
       const url = m[2];
@@ -114,6 +113,7 @@ export function adocFindDocumentRefs(doc: string): DocRef[] {
         new DocRef(displayText, url, m[0],
           new PagePosition(nline, m.index, m.index + off)));
     }
+    nline += 1;
     off += ln.length;
   });
   return res;
