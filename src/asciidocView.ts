@@ -37,6 +37,11 @@ declare const mermaid: any;
 CodeMirror.defineMode("asciidoc", asciidoc);
 CodeMirror.defineMIME("text/asciidoc", "asciidoc");
 
+const MAX_PREPROCESS_DEPTH = 10;
+// borrowed from lib/asciidoctor/rx.rb
+const IncludeDirectiveRx = /^(\\)?include::([^\s\[](?:[^\[]*[^\s\[])?)\[(#{CC_ANY}+)?\]$/gm;
+
+
 loadPrism().then(_ => { });
 loadMermaid().then(_ => { });
 
@@ -263,9 +268,58 @@ export class AsciidocView extends TextFileView {
     };
   }
 
-  private renderViewerMode(parentEl: HTMLElement) {
+  private async resolveInclude(filePath: string, params?: string): Promise<string | undefined> {
+    /*
+     * Lets ignore params! Because I don't use them, so anyone shouldn't!
+     */
+    let path = this.canonicalizePath(filePath);
+    let f = this.app.vault.getFileByPath(path);
+    if (f === null) {
+      console.warn(`can't resolve include ${f} for path ${this.app.workspace.getActiveFile()!.path}`);
+      return undefined;
+    }
+    return await this.app.vault.read(f);
+  }
+
+  private async preprocessAdoc(doc: string, preprocessDepth?: number): Promise<string> {
+    if (preprocessDepth === undefined) {
+      preprocessDepth = 0;
+    }
+    if (preprocessDepth >= MAX_PREPROCESS_DEPTH) {
+      console.error("preprocess depth exceeded!");
+      return "**preprocess depth exceeded!**\n";
+    }
+
+    let matches = [...doc.matchAll(IncludeDirectiveRx)];
+    if (matches.length == 0) {
+      return doc;
+    }
+    let startIdx = 0;
+    let outString = "";
+    for (const m of matches) {
+      outString += doc.substring(startIdx, m.index! - 1);
+      startIdx = m.index! + m[0].length;
+      let includeFilePath = m[2];
+      let includeParams = m[4];
+      if (includeFilePath === undefined) {
+        console.error(`can't parse include FilePath for ${m[0]}`)
+        continue
+      }
+      let s = await this.resolveInclude(includeFilePath, includeParams);
+      if (s === undefined) {
+        outString += "**Can't resolve include**\n";
+      } else {
+        outString += await this.preprocessAdoc(s, preprocessDepth + 1);
+      }
+    }
+    outString += doc.substring(startIdx);
+
+    return outString;
+  }
+
+  private async renderViewerMode(parentEl: HTMLElement) {
     const contents = this.editorView.state.doc.toString();
-    const htmlStr = this.adoc.convert(contents, this.getViewerOptions());
+    const htmlStr = this.adoc.convert(await this.preprocessAdoc(contents), this.getViewerOptions());
 
     const parser = new window.DOMParser();
 
