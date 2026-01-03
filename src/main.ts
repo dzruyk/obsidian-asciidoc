@@ -35,10 +35,12 @@ class MetadataCacheEntry {
 
 interface AsciidocPluginSettings {
   experimentalMetadataCacheHook: boolean;
+  vimMode: boolean;
 }
 
 const DEFAULT_SETTINGS: AsciidocPluginSettings = {
-  experimentalMetadataCacheHook: false
+  experimentalMetadataCacheHook: false,
+  vimMode: false
 }
 
 export default class AsciidocPlugin extends Plugin {
@@ -156,7 +158,12 @@ export default class AsciidocPlugin extends Plugin {
   }
 
   public updateEditorExtensions() {
-    this.app.workspace.updateOptions();
+    this.app.workspace.getLeavesOfType(ASCIIDOC_EDITOR_VIEW).forEach(leaf => {
+      const view = leaf.view as AsciidocView;
+      if (view && view.updateVimMode) {
+        view.updateVimMode(this.settings.vimMode);
+      }
+    });
   }
 }
 
@@ -185,6 +192,18 @@ class AsciidocPluginSettingTab extends PluginSettingTab {
           } else {
             this.plugin.unregHooks();
           }
+        })
+      )
+
+    new Setting(containerEl)
+      .setName("Enable Vim mode")
+      .setDesc("Enable Vim keybindings in the editor (Edit mode only)")
+      .addToggle(c => c
+        .setValue(this.plugin.settings.vimMode)
+        .onChange(async (value) => {
+          this.plugin.settings.vimMode = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateEditorExtensions();
         })
       )
   }
