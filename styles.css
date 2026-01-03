@@ -341,11 +341,15 @@ div.CodeMirror-dragcursors {
 .adoc-view.is-readable-line-width .cm-line {
   max-width: var(--file-line-width);
 }
+.adoc-view .cm-editor {
+  height: 100%;
+}
 .adoc-view .cm-scroller {
   font-family: var(--font-text);
   line-height: var(--line-height-normal);
   scroll-padding-block-end: var(--status-bar-scroll-padding);
   scrollbar-gutter: stable;
+  overflow: auto;
 }
 .adoc-view span.cm-builtin {
   font-family: var(--font-monospace);

@@ -11,7 +11,7 @@ import {
 	foldKeymap,
 	indentOnInput,
 } from "@codemirror/language";
-import { EditorState, Extension, Compartment } from "@codemirror/state";
+import { EditorState, Extension, Compartment, Prec } from "@codemirror/state";
 import { dropCursor, EditorView, keymap } from "@codemirror/view";
 import {
 	closeBrackets,
@@ -190,7 +190,6 @@ export const basicExtensions: Extension[] = [
 	highlightSelectionMatches(),
 	obsidianTheme,
 	//syntaxHighlighting(obsidianHighlightStyle),
-	vimCompartment.of([]),
 	keymap.of([
 		...closeBracketsKeymap,
 		...defaultKeymap,
@@ -201,12 +200,14 @@ export const basicExtensions: Extension[] = [
 		...completionKeymap,
 		...lintKeymap,
 	]),
+	// Vim must come after other keymaps so it takes precedence
+	vimCompartment.of([]),
 ];
 
 // TODO: Do I need to use compartments, or is there a better way?
 const language = new Compartment();
 
 export function getVimExtension(enabled: boolean): Extension {
-	return enabled ? vim() : [];
+	return enabled ? Prec.high(vim()) : [];
 }
 
