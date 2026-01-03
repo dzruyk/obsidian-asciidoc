@@ -22,6 +22,7 @@ import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { lintKeymap } from "@codemirror/lint";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
+import { vim } from "@replit/codemirror-vim";
 
 const codemirrorConfig = {
 	name: "obsidian",
@@ -175,6 +176,8 @@ export const obsidianHighlightStyle = HighlightStyle.define([
 	{ tag: t.invalid, color: codemirrorConfig.invalid },
 ]);
 
+export const vimCompartment = new Compartment();
+
 export const basicExtensions: Extension[] = [
 	history(),
 	foldGutter(),
@@ -187,6 +190,7 @@ export const basicExtensions: Extension[] = [
 	highlightSelectionMatches(),
 	obsidianTheme,
 	//syntaxHighlighting(obsidianHighlightStyle),
+	vimCompartment.of([]),
 	keymap.of([
 		...closeBracketsKeymap,
 		...defaultKeymap,
@@ -201,4 +205,8 @@ export const basicExtensions: Extension[] = [
 
 // TODO: Do I need to use compartments, or is there a better way?
 const language = new Compartment();
+
+export function getVimExtension(enabled: boolean): Extension {
+	return enabled ? vim() : [];
+}
 

@@ -20,7 +20,7 @@ import { Highlighter } from "@lezer/highlight";
 import { tokenClassNodeProp } from "@codemirror/stream-parser";
 
 import AsciidocPlugin from "./main"
-import { basicExtensions } from "./codemirror";
+import { basicExtensions, vimCompartment, getVimExtension } from "./codemirror";
 import { SearchCtx } from "./searchCtx";
 import { asciidoc } from "codemirror-asciidoc";
 import { KeyInfo, KeyboardCallbacks } from "./keyboardCallbacks";
@@ -180,12 +180,14 @@ export class AsciidocView extends TextFileView {
   private editorView: EditorView;
   private keyMap: KeyboardCallbacks;
   private isEditMode: boolean;
+  private vimModeEnabled: boolean;
 
   constructor(plugin: AsciidocPlugin, leaf: WorkspaceLeaf) {
     super(leaf);
     this.plugin = plugin;
     this.div = this.contentEl.createEl("div", { cls: "adoc-view" });
     this.isEditMode = isEditMode; // initialize with global value
+    this.vimModeEnabled = plugin.settings.vimMode;
 
     // For viewer mode
     this.adoc = asciidoctor();
@@ -214,6 +216,11 @@ export class AsciidocView extends TextFileView {
       //parent: this.contentEl,
     });
 
+    // Apply initial vim mode setting
+    if (this.vimModeEnabled) {
+      this.updateVimMode(true);
+    }
+
     this.actionElem = this.addAction("book-open", "preview/editor mode", (_: MouseEvent ) => { this.changeViewMode() });
     this.setModeIcon();
 
@@ -222,6 +229,13 @@ export class AsciidocView extends TextFileView {
       setTimeout(() => {
         this.editorView.setRoot(this.contentEl.getRootNode() as Document);
       }, 200);
+    });
+  }
+
+  public updateVimMode(enabled: boolean) {
+    this.vimModeEnabled = enabled;
+    this.editorView.dispatch({
+      effects: vimCompartment.reconfigure(getVimExtension(enabled))
     });
   }
 
