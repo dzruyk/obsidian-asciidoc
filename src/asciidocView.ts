@@ -216,6 +216,11 @@ export class AsciidocView extends TextFileView {
       //parent: this.contentEl,
     });
 
+    // Apply initial vim mode setting
+    if (this.vimModeEnabled) {
+      this.updateVimMode(true);
+    }
+
     this.actionElem = this.addAction("book-open", "preview/editor mode", (_: MouseEvent ) => { this.changeViewMode() });
     this.setModeIcon();
 
